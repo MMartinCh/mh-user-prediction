@@ -3,13 +3,9 @@ import pytest
 from src.core.dataclasses.monster_data import MonsterData
 from src.data_collection.repositories.csv_repository import LocalCsvRepository
 
-def test_csv_repository_save_and_load(tmp_path):
+def test_csv_repository_save_and_load():
     """Test that data can be serialized to CSV and deserialized accurately."""
-    
-    test_path = tmp_path
-    test_file = "test_monsters.csv"
-
-    repository = LocalCsvRepository(data_path=test_path, default_file_name=test_file)
+    repository = LocalCsvRepository()
     
     sample_monsters = [
         MonsterData(

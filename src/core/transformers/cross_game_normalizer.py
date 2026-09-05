@@ -19,7 +19,7 @@ class CrossGameNormalizer(BaseEstimator, TransformerMixin):
             self.game_stats_[game] = {}
             for col in self.columns_to_normalize:
                 if col in group.columns:
-                    vals = group[col].astype(float).fillna(0)
+                    vals = group[col].astype(float).dropna()
                     self.game_stats_[game][col] = {
                         "mean": vals.mean(),
                         "std": vals.std(),
