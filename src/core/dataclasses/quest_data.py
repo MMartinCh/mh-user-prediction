@@ -50,6 +50,7 @@ class TransformedQuestItem:
     is_event: Optional[bool] = False
 
     hp: Optional[int] = None
+    multi_target: Optional[bool] = False
 
     reward_zenny: Optional[int] = 0
     reward_points: Optional[int] = 0

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from src.core.transformers.cross_game_normalizer import CrossGameNormalizer
+from src.core.transformers.cross_game_normalizer import CrossGameNormalizer #type:ignore
 
 def test_normalizer():
     """Test CrossGameNormalizer on sample data."""
