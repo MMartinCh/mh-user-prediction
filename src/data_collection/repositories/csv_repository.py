@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Any, List, get_type_hints
 
-from src.core.interfaces import AbstractMonsterRepository
+from src.core.interfaces import AbstractMonsterRepository #type:ignore
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class LocalCsvRepository(AbstractMonsterRepository):
 
         logger.info(f"Data successfully saved to: {file_path}!")
 
-    def load(self, file_name: str = None) -> List[Any]:
+    def load(self, file_name: str | None = None) -> List[Any]:
         file_name = self.default_file_name if file_name is None else file_name
         file_path = self.DATA_PATH / file_name
 
@@ -101,6 +101,6 @@ class LocalCsvRepository(AbstractMonsterRepository):
                     else:
                         monster_kwargs[field_name] = val
 
-                monsters.append(Any(**monster_kwargs))
+                monsters.append(Any, **monster_kwargs)
 
         return monsters

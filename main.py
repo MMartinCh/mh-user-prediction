@@ -2,10 +2,13 @@ import logging
 import sys
 from pathlib import Path
 
-from src.data_collection.scrapers.partial import TriQuestScraper, FourQuestScraper, FreedomQuestScraper, FUQuestScraper, GenerationsQuestScraper, RiseQuestScraper, WorldQuestScraper, WildsQuestScraper # type: ignore
+import pandas as pd
+
 from src.data_collection.scrapers import MHWikiScraper, RankingScraper, CompleteQuestScraper
 from src.data_collection.scrapers.ranking_scraper import RankingScraper
 from src.data_collection.repositories import DataMerger, LocalCsvRepository
+from src.core.transformers.cross_game_normalizer import CrossGameNormalizer
+from src.core.features.aggregator import Aggregator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,47 +17,37 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
+    # initialize paths and logger
+    DATA_PATH = Path(__file__).resolve().parent / "data"
+    monster_path = DATA_PATH / "subsets" / "attempt_merge.csv"
+    quest_path = DATA_PATH / "quest_data.csv"
+
     logger = logging.getLogger(__name__)
 
-    # Initiate classes
-    DATA_PATH = Path(__file__).resolve().parent/ "data"
-    MODE = "TEST"
+    # read dfs
+    df_monster = pd.read_csv(monster_path)
+    df_quest = pd.read_csv(quest_path)
 
-    logger.info(f"Start session | Data Path: {DATA_PATH} | Mode: {MODE}")
+    # feature engineering
+    normalizer = CrossGameNormalizer()
+    df_quest_normalized = pd.DataFrame(
+        normalizer.fit_transform(df_quest)
+        )
+    print(df_quest_normalized)
 
+    aggregator = Aggregator(
+        df_target=df_monster,
+        df_source=df_quest_normalized,
+    )
+    df_aggregated = aggregator.aggregate()
+
+    # save df
     repository = LocalCsvRepository()
-    merger = DataMerger()
-    ranking_scraper = RankingScraper()
-    wiki_scraper = MHWikiScraper()
-    #quest_scraper = CompleteQuestScraper()
+    repository.save(
+        monsters=df_aggregated,
+        path=DATA_PATH,
+        file_name="test_aggregate.csv"
+    )
 
-    # Get Data: Scraping or Loading
-    match MODE:
-        case "SCRAPE":
-            ranking_data = ranking_scraper.scrape()
-            wiki_data = wiki_scraper.scrape()
-            quest_data = quest_scraper.scrape()
+    logger.info(f"Aggregated test df saved to {DATA_PATH}.")
 
-            repository.save(ranking_data, "ranking_data.csv")
-            repository.save(wiki_data, "wiki_data.csv")
-            repository.save(quest_data, "quest_data.csv")
-    
-        case "LOAD":
-            ranking_data = repository.load("ranking_data.csv")
-            wiki_data = repository.load("wiki_data.csv")
-
-        case "TEST":
-            test_scraper = CompleteQuestScraper()
-            test_data = test_scraper.scrape()
-            
-            print("Test Results")
-            print("="*30)
-            for quest in test_data:
-                print(quest)
-
-            repository.save(test_data, file_name="complete_test_data.csv")
-
-    # Merge data
-    #merged_data = merger.merge(ranking_data, wiki_data)
-
-    # Save data

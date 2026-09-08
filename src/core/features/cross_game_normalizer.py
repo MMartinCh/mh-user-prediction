@@ -40,7 +40,12 @@ class CrossGameNormalizer(BaseEstimator, TransformerMixin):
 
                     if game in self.game_stats_ and col in self.game_stats_[game]:
                         stats = self.game_stats_[game][col]
-                        row_dict[f"{col}_norm"] = (val - stats['mean']) / stats['std']
+                        std = stats['std']
+                        
+                        if std and not np.isnan(std) and std > 0:
+                            row_dict[f"{col}_norm"] = (val - stats['mean']) / std
+                        else:
+                            row_dict[f"{col}_norm"] = 0.0
                     else:
                         row_dict[f"{col}_norm"] = 0.0
 

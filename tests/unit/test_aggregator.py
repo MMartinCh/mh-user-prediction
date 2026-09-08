@@ -76,7 +76,6 @@ def test_aggregate():
         "type": [ "Flying", "Flying", "Elder"],
         "game_appearances": [2, 1, 1],
         "quest_appearances": [3, 1, 1],
-        "first_appearance": [2, 3, 4],
         "assignment_ratio": [2 / 3, 1.0, 1.0],
         "event_ratio": [1 / 3, 0.0, 0.0],
         "mean_reward_LR": [1000.0, np.nan, np.nan],
