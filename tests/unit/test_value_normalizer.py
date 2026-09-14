@@ -2,11 +2,9 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from src.core.transformers.cross_game_normalizer import CrossGameNormalizer #type:ignore
+from src.features.cross_game_normalizer import CrossGameNormalizer #type:ignore
 
 def test_normalizer():
-    """Test CrossGameNormalizer on sample data."""
-
     sample = pd.DataFrame({
         "game": ["A", "A", "A", "B", "B", "B"],
         "level": [1, 2, 3, 10, 20, 30]

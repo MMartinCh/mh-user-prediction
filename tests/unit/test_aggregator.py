@@ -1,7 +1,8 @@
 import pytest
 import pandas as pd
 import numpy as np
-from src.core.features.aggregator import Aggregator #type:ignore
+
+from src.features.aggregator import Aggregator #type:ignore
 
 def test_explode_source():
     df_target = pd.DataFrame({
