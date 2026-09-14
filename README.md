@@ -3,6 +3,7 @@ Ongoing front-to-back machine learning project. Scrapes user ratings and franchi
 
 Current status:
  - Data formats and Abstract Base Classes ✓
+ - YAML-based config and metadata ✓
  - Web Scraping ✓
  - Data aggregation and custom transformers ✓
  - Unit tests (for implemented features) ✓
