@@ -1,0 +1,10 @@
+# default settings
+# =================
+default:
+  overwrite: False # (bool, optional) whether to overwrite if data already stored
+
+# default paths
+# =================
+paths:
+  metadata_path: /config/game_metadata.yaml
+  

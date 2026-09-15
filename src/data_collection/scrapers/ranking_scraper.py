@@ -1,5 +1,6 @@
 import itertools
 import logging
+import yaml
 from functools import cached_property
 
 import pandas as pd
@@ -39,10 +40,16 @@ class RankingScraper(AbstractWebScraper[RankingScraperItem]):
         return monster_rankings
     
     def _get_top_3(self) -> List[RankingScraperItem]:
+        meta_path = AbstractWebScraper.ROOT_PATH / "config" / "metadata.yaml"
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = yaml.safe_load(f)
+
+        top_3_data = meta["monster_metadata"]["top_3"]
+
         top_3 = [
-            {"monster_name": "Zinogre", "rank": 1},
-            {"monster_name": "Nergigante", "rank": 2},
-            {"monster_name": "Lagiacrus", "rank": 3}
+            {"monster_name": top_3_data.get(1), "rank": 1},
+            {"monster_name": top_3_data.get(2), "rank": 2},
+            {"monster_name": top_3_data.get(3), "rank": 3}
             ]
 
         return [RankingScraperItem(**entry) for entry in top_3]
