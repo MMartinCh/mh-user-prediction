@@ -9,11 +9,11 @@ from playwright.sync_api import Browser, sync_playwright
 
 from src.core.helpers import file_cache #type:ignore
 from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestItem #type:ignore
+from src.core.dataclasses import QuestObject #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class FourQuestScraper(AbstractWebScraper[QuestItem]):
+class FourQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH Four Ultimate.
     To be called via QuestScraper class."""
 
@@ -63,7 +63,7 @@ class FourQuestScraper(AbstractWebScraper[QuestItem]):
     def monster_links(self) -> List[str]:
         return self._scrape_links("monster")
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         hp_lookup = {
             monster: hp
             for monster_dict in self.monster_data
@@ -91,7 +91,7 @@ class FourQuestScraper(AbstractWebScraper[QuestItem]):
                         target_hp[target] = base_hp
 
             complete_data.append(
-                QuestItem(
+                QuestObject(
                     title=quest.get("title"),
                     game=self.GAME,
                     generation=self.GEN,

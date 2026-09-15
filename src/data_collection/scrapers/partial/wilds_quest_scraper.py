@@ -5,17 +5,14 @@ from pathlib import Path
 from typing import Any, Dict, List
 from urllib.parse import urljoin
 
-import numpy as np
-import pandas as pd
-from bs4 import BeautifulSoup
 
 from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.dataclasses import QuestItem #type:ignore
+from src.core.dataclasses import QuestObject #type:ignore
 from src.core.helpers import file_cache #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class WildsQuestScraper(AbstractWebScraper[QuestItem]):
+class WildsQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH Wilds from MH Wiki.
     To be called via QuestScraper class.
     """
@@ -39,7 +36,7 @@ class WildsQuestScraper(AbstractWebScraper[QuestItem]):
     def hp_rp_data(self) -> Dict[str,Dict[str,int]]:
         return self.scrape_hp_and_rp()
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
 
         # TODO: for missing hp and rp - get base hp and use generic multiplier for lr and hr; same for rp
         quest_items = []
@@ -52,7 +49,7 @@ class WildsQuestScraper(AbstractWebScraper[QuestItem]):
             reward_points = hp_rp.get("reward_points", 0)
 
             quest_items.append(
-                QuestItem(
+                QuestObject(
                     title=quest["title"],
                     quest_id=f"mh_wilds_{i}",
                     game=self.GAME,

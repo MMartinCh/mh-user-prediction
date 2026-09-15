@@ -5,11 +5,11 @@ from typing import Any, Dict, List
 
 from src.core.helpers import file_cache #type:ignore
 from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestItem #type:ignore
+from src.core.dataclasses.quest_data import QuestObject #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class FUQuestScraper(AbstractWebScraper[QuestItem]):
+class FUQuestScraper(AbstractWebScraper[QuestObject]):
     """Scrapes quests for Freedom Unite and returns list of quest items."""
     GAME = "Freedom Unite"
     GEN = 2
@@ -34,9 +34,9 @@ class FUQuestScraper(AbstractWebScraper[QuestItem]):
     def raw_cache_data(self) -> Dict[str, List[Dict[str, Any]]]:
         return self._fetch_handler_data_from_github() 
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         return [
-            QuestItem(
+            QuestObject(
                 title=quest.get("name"),
                 game=self.GAME,
                 generation=self.GEN,

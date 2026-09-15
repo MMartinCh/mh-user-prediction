@@ -2,18 +2,15 @@ import itertools
 import logging
 import yaml
 from functools import cached_property
-
-import pandas as pd
-from bs4 import BeautifulSoup
 from typing import List
 
-from src.core.dataclasses import RankingScraperItem #type:ignore
+from src.core.dataclasses import RankingObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class RankingScraper(AbstractWebScraper[RankingScraperItem]):
+class RankingScraper(AbstractWebScraper[RankingObject]):
     """Scrapes monster names and rankings from MH 20th anniversary website."""
     RANKING_URL = r"https://www.monsterhunter.com/20th/en/vote-monster/result/"
 
@@ -22,15 +19,15 @@ class RankingScraper(AbstractWebScraper[RankingScraperItem]):
     DEFAULT_RANKING_RESULTS_PATH = DATA_PATH / "ranking_data.csv"
 
     @property
-    def top_3(self) -> List[RankingScraperItem]:
+    def top_3(self) -> List[RankingObject]:
         return self._get_top_3()
 
     @cached_property
     @file_cache("DEFAULT_PARTIAL_RANKING_PATH")
-    def ranks_4_to_228(self) -> List[RankingScraperItem]:
+    def ranks_4_to_228(self) -> List[RankingObject]:
         return self._get_4_to_228()
 
-    def scrape(self) -> List[RankingScraperItem]:
+    def scrape(self) -> List[RankingObject]:
         logger.info("Start scraping Official Capcom Fan Ranking.")
         monster_rankings = []
 
@@ -39,7 +36,7 @@ class RankingScraper(AbstractWebScraper[RankingScraperItem]):
 
         return monster_rankings
     
-    def _get_top_3(self) -> List[RankingScraperItem]:
+    def _get_top_3(self) -> List[RankingObject]:
         meta_path = AbstractWebScraper.ROOT_PATH / "config" / "metadata.yaml"
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = yaml.safe_load(f)
@@ -52,9 +49,9 @@ class RankingScraper(AbstractWebScraper[RankingScraperItem]):
             {"monster_name": top_3_data.get(3), "rank": 3}
             ]
 
-        return [RankingScraperItem(**entry) for entry in top_3]
+        return [RankingObject(**entry) for entry in top_3]
     
-    def _get_4_to_228(self) -> List[RankingScraperItem]:
+    def _get_4_to_228(self) -> List[RankingObject]:
         top_4_to_bottom = []
 
         soup = self.retrieve_soup(self.RANKING_URL)
@@ -73,10 +70,10 @@ class RankingScraper(AbstractWebScraper[RankingScraperItem]):
 
                 rank_dict = {"monster_name": name, "rank": rank}
 
-                top_4_to_bottom.append(RankingScraperItem(**rank_dict))
+                top_4_to_bottom.append(RankingObject(**rank_dict))
 
             except AttributeError:
-                logger.warning(f"No text for scraped item Nr. {rank} found!")
+                logger.warning(f"No text found!")
 
         logger.info(f"Ranks 4 to 229 successfully scraped! {len(top_4_to_bottom)} items scraped.")
         return top_4_to_bottom

@@ -1,5 +1,9 @@
-from .mh_wiki_scraper import MHWikiScraper
+from .wiki_scraper import WikiScraper
 from .ranking_scraper import RankingScraper
-from .quest_scraper import CompleteQuestScraper
+from .quest_scraper import QuestScraper
 
-__all__ = ["MHWikiScraper", "RankingScraper", "CompleteQuestScraper"]
+__all__ = [
+    "WikiScraper", 
+    "RankingScraper", 
+    "QuestScraper"
+]

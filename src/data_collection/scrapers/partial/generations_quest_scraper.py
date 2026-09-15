@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 
 from src.core.helpers import file_cache #type:ignore
 from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestItem #type:ignore
+from src.core.dataclasses.quest_data import QuestObject #type:ignore
 
-class GenerationsQuestScraper(AbstractWebScraper[QuestItem]):
+class GenerationsQuestScraper(AbstractWebScraper[QuestObject]):
         """Partial Scraper Class that scrapes quest data for MH G/GU.
         To be called via QuestScraper class."""
 
@@ -51,9 +51,9 @@ class GenerationsQuestScraper(AbstractWebScraper[QuestItem]):
         def monster_links(self) -> List[str]:
                 return self.scrape_monster_links()
 
-        def scrape(self) -> List[QuestItem]:
+        def scrape(self) -> List[QuestObject]:
                 return [
-                        QuestItem(
+                        QuestObject(
                                 title=quest.get("title"),
                                 quest_id=quest.get("id_"),
                                 game=self.GAME,

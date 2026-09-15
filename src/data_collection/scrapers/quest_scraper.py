@@ -1,7 +1,7 @@
 import logging
 from typing import List, Optional
 
-from src.core.dataclasses import QuestItem #type:ignore
+from src.core.dataclasses import QuestObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.data_collection.scrapers.partial import ( #type:ignore
     TriQuestScraper,
@@ -16,7 +16,7 @@ from src.data_collection.scrapers.partial import ( #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class CompleteQuestScraper(AbstractWebScraper[QuestItem]):
+class QuestScraper(AbstractWebScraper[QuestObject]):
     """Pipeline calling all PartialQuestScraper classes and merging them into a complete quest dataset."""
 
     def __init__(
@@ -31,7 +31,7 @@ class CompleteQuestScraper(AbstractWebScraper[QuestItem]):
         world_quest_scraper: Optional[WorldQuestScraper] = None,
     ) -> None:
 
-        self.scrapers: List[AbstractWebScraper[QuestItem]] = [
+        self.scrapers: List[AbstractWebScraper[QuestObject]] = [
             tri_quest_scraper or TriQuestScraper(),
             four_quest_scraper or FourQuestScraper(),
             freedom_quest_scraper or FreedomQuestScraper(),
@@ -42,7 +42,7 @@ class CompleteQuestScraper(AbstractWebScraper[QuestItem]):
             wilds_quest_scraper or WildsQuestScraper(),
         ]
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         """Scrape quests from all main line games and return a flat list of QuestItems."""
         return [
             quest 

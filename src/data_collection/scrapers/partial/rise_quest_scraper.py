@@ -11,11 +11,11 @@ import pandas as pd
 
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
-from src.core.dataclasses import QuestItem # type:ignore
+from src.core.dataclasses import QuestObject # type:ignore
 
 logger = logging.getLogger(__name__)
 
-class RiseQuestScraper(AbstractWebScraper[QuestItem]):
+class RiseQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH Rise/ Sunbreak.
     To be called via QuestScraper class.
     """
@@ -61,10 +61,10 @@ class RiseQuestScraper(AbstractWebScraper[QuestItem]):
     def quest_data(self) -> List[Dict[str,Any]]:
         return self.scrape_quest_data()
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         """Get all Quest info for MH Rise/ Sunbreak and return list of structured quest data."""
         return[
-            QuestItem(
+            QuestObject(
                 title=quest["title"],
                 quest_id=quest["id"],
                 game=self.GAME,

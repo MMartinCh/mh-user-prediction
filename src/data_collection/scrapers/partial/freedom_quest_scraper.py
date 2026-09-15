@@ -9,11 +9,11 @@ from playwright.sync_api import Browser, sync_playwright
 
 from src.core.helpers import file_cache #type:ignore
 from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestItem #type:ignore
+from src.core.dataclasses.quest_data import QuestObject #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class FreedomQuestScraper(AbstractWebScraper[QuestItem]):
+class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH Freedom.
     To be called via QuestScraper class."""
 
@@ -53,9 +53,9 @@ class FreedomQuestScraper(AbstractWebScraper[QuestItem]):
     def monster_list(self) -> List[str]:
         return self._scrape_monster_list()
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         return [
-            QuestItem(
+            QuestObject(
                 title= quest.get("title"),
                 quest_id= f"{self.GAME}_{i}",
                 game= self.GAME,

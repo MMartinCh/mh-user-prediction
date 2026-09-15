@@ -6,15 +6,15 @@ from typing import List
 class Aggregator:
     """Transforms data from df_source and joins onto df_target."""
 
-    def __init__(self, df_target: pd.DataFrame, df_source: pd.DataFrame):
-        self.df_target = df_target
-        self.df_source = df_source
-
     @cached_property
     def df_source_exploded(self) -> pd.DataFrame:
         return self.explode_source()
 
-    def aggregate(self) -> pd.DataFrame:
+    def aggregate(
+            self,
+            df_target: pd.DataFrame,
+            source_dfs: List[pd.DataFrame],
+    ) -> pd.DataFrame
         """Aggregate quest data per monster, average and join to monster data. Return monster data with quest features."""
 
         general_features = (

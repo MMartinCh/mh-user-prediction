@@ -9,12 +9,12 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.dataclasses import QuestItem #type:ignore
+from src.core.dataclasses import QuestObject #type:ignore
 from src.core.helpers import file_cache #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class WorldQuestScraper(AbstractWebScraper[QuestItem]):
+class WorldQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH World/ Icebreak.
     To be called via QuestScraper class.
     """
@@ -58,13 +58,13 @@ class WorldQuestScraper(AbstractWebScraper[QuestItem]):
     def quest_data(self) -> List[Dict[str,Any]]:
         return [self.scrape_quest_data(link) for link in self.quest_links]
 
-    def scrape(self) -> List[QuestItem]:
+    def scrape(self) -> List[QuestObject]:
         """Extract quest data from Base Url."""
         category_lookup = self.quest_base.set_index("id")["category"].to_dict()
         print(category_lookup)
 
         return[
-            QuestItem(
+            QuestObject(
                 title = quest["title"],
                 quest_id = quest["id_"],
                 game=self.GAME,

@@ -2,18 +2,16 @@ import logging
 import re
 from functools import cached_property
 
-from bs4 import BeautifulSoup
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 from urllib.parse import urljoin
 
-from src.core.dataclasses import MHWikiItem #type:ignore
+from src.core.dataclasses import WikiObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
 
 logger = logging.getLogger(__name__)
 
-class MHWikiScraper(AbstractWebScraper[MHWikiItem]):
+class WikiScraper(AbstractWebScraper[WikiObject]):
     WIKI_URL = r"https://monsterhunterwiki.org/wiki/Monster_List"
     DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "general"
     WIKI_MONSTER_LINKS_PATH = DATA_PATH / "helpers" / "wiki_monster_links.txt"
@@ -23,7 +21,7 @@ class MHWikiScraper(AbstractWebScraper[MHWikiItem]):
     def monster_links(self) -> List[str]:
         return self.get_monster_links()
 
-    def scrape(self) -> List[MHWikiItem]:
+    def scrape(self) -> List[WikiObject]:
         """Scrape all monster data from Monster Hunter Wiki and return as list of structured data."""
         logger.info("Start scraping from MH Wiki.")
 
@@ -41,7 +39,7 @@ class MHWikiScraper(AbstractWebScraper[MHWikiItem]):
             logger.warning(f"Manually interrupted with keybord interrupt!")
             return wiki_data
 
-    def _get_monster_info(self, link: str) -> MHWikiItem:
+    def _get_monster_info(self, link: str) -> WikiObject:
         """Extract one MHWikiItem for Monster from individual monster page."""
         soup = self.retrieve_soup(link)
         name_from_link = link.split("/")[-1]
@@ -80,7 +78,7 @@ class MHWikiScraper(AbstractWebScraper[MHWikiItem]):
             
             logger.info(f"Data successfully scraped for {name_from_link}")
             
-            return MHWikiItem(
+            return WikiObject(
                 monster_name=monster_info.get("monster_name"),
                 first_appearance=monster_info.get("original"),
                 latest_appearance=monster_info.get("latest"),

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 @dataclass(frozen=True) 
-class MonsterData:
+class MonsterObject:
     """Domain model representing a single monster's raw and engineered traits."""
     monster_name: Optional[str] = None
 
@@ -36,33 +36,6 @@ class MonsterData:
     rank: Optional[int] = None
 
 
-@dataclass(frozen=True)
-class RankingScraperItem:
-    """DTO retrieved by RankingScraper."""
-    monster_name: str
-    rank: int
 
-@dataclass(frozen=True)
-class MHWikiItem:
-    """DTO retrieved from the Monster Hunter Wiki - Monster Overview site and recursive Monster links."""
-    monster_name: str
 
-    first_appearance: Optional[str] = None
-    latest_appearance: Optional[str] = None
 
-    classification: Optional[str] = None
-    elements: List[str] = field(default_factory=list)
-    ailments: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
-
-    size: Optional[float] = None
-    habitats: List[str] = field(default_factory=list)
-
-    is_flagship: Optional[bool] = False
-    is_subspecies: Optional[bool] = False
-    is_variant: Optional[bool] = False
-    is_deviant: Optional[bool] = False
-    is_rare_species: Optional[bool] = False
-    is_collaboration: Optional[bool] = False
-    is_final_boss: Optional[bool] = False
-    has_theme: Optional[bool] = False
