@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -19,8 +18,8 @@ class Pipeline():
             ranking_scraper: RankingScraper,
             aggregator: Aggregator,
             normalizer: CrossGameNormalizer,
+            model: Any, #HACK: placeholder
             repository: LocalCsvRepository,
-            config = Dict[str, Any],
             ) -> None:
 
         # Init scrapers
@@ -34,13 +33,8 @@ class Pipeline():
 
         # Init data storage
         self.repository = repository
-        self.outpath = config["paths"]["outpath"]
 
-        # Settings
-        self.scraper_settings = config["scraper_settings"]
-        self.model_settings = config["model_settings"]
-
-    def pipeline(self) -> None:
+    def run(self) -> None:
         """Function calling the full pipeline."""
 
         # Get data        
@@ -56,16 +50,19 @@ class Pipeline():
         )
 
         # Model fit
-        predictor = self._train_model()
+        model.fit(df) #type:ignore #HACK: placeholder
 
         # Model evaluation
-        model_benchmark = self._evaluate_model()
+        result = self._evaluate_model()
+
+        return result
+
 
     def _feature_engineering(
             self,
-            _ranking_data: List[RankingObject],
-            _quest_data: List[QuestObject],
-            _wiki_data: List[WikiObject],
+            _ranking_data: list[RankingObject],
+            _quest_data: list[QuestObject],
+            _wiki_data: list[WikiObject],
         ) -> np.ndarray:
         """Apply all transformers to data, aggregate and return the final, ready-to-fit DF."""
         df_ranking = pd.DataFrame(_ranking_data)

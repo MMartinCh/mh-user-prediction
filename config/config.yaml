@@ -8,3 +8,4 @@ default:
 paths:
   metadata_path: /config/game_metadata.yaml
   
+  
