@@ -21,7 +21,7 @@ df = pd.DataFrame({
     "reward_points": [15, 10, 30],
 })
 
-feature_builder = QuestFeatureBuilder(df)
+feature_builder = QuestFeatureBuilder()
 
 def test_explode_df():
     expected = pd.DataFrame({
@@ -43,12 +43,12 @@ def test_explode_df():
         "monster_hp": [1000, 1500, 1200, 2000, 1500],
     })
 
-    actual = feature_builder.explode_df()
+    actual = feature_builder.explode_df(df=df)
 
     pd.testing.assert_frame_equal(expected, actual)
 
 def test_general_features():
-    df_exploded = feature_builder.explode_df()
+    df_exploded = feature_builder.explode_df(df=df)
 
     expected = pd.DataFrame(
         {
@@ -63,12 +63,12 @@ def test_general_features():
         ),
     )
 
-    actual = feature_builder.get_general_features(df_exploded)
+    actual = feature_builder.get_general_features(df=df_exploded)
 
     pd.testing.assert_frame_equal(expected, actual)
 
 def test_rank_features():
-    df_exploded = feature_builder.explode_df()
+    df_exploded = feature_builder.explode_df(df=df)
 
     expected = pd.DataFrame(
         {
@@ -85,7 +85,7 @@ def test_rank_features():
         ),
     )
 
-    actual = feature_builder.get_rank_features(df_exploded)
+    actual = feature_builder.get_rank_features(df=df_exploded)
 
     pd.testing.assert_frame_equal(expected, actual)
 
@@ -109,6 +109,6 @@ def test_transform():
         ),
     )
 
-    actual = feature_builder.transform()
+    actual = feature_builder.transform(df=df)
 
     pd.testing.assert_frame_equal(expected, actual)

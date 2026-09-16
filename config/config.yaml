@@ -1,11 +1,23 @@
-# default settings
+# default factory settings
 # =================
-default:
-  overwrite: False # (bool, optional) whether to overwrite if data already stored
+model:
+  type: RandomForestRegressor
+  n_estimator: 200
+  max_depth: 10
+
+scraper:
+  general:
+    overwrite: None
+    polite: None
+  main:
+    ranking:
+      url: "https://www.monsterhunter.com/20th/en/vote-monster/result/"
+
 
 # default paths
 # =================
-paths:
-  metadata_path: /config/game_metadata.yaml
+path:
+  out: /data/result
+  meta: /config/game_metadata.yaml/
   
   

@@ -2,6 +2,7 @@ import itertools
 import logging
 import yaml
 from functools import cached_property
+from pathlib import Path
 from typing import List
 
 from src.core.dataclasses import RankingObject #type:ignore
@@ -12,33 +13,35 @@ logger = logging.getLogger(__name__)
 
 class RankingScraper(AbstractWebScraper[RankingObject]):
     """Scrapes monster names and rankings from MH 20th anniversary website."""
-    RANKING_URL = r"https://www.monsterhunter.com/20th/en/vote-monster/result/"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "general"
-    DEFAULT_PARTIAL_RANKING_PATH = DATA_PATH / "partial" / "partial_ranking_data.json"
-    DEFAULT_RANKING_RESULTS_PATH = DATA_PATH / "ranking_data.csv"
+    def __init__(
+            self,
+            url: str,
+            out_path: str,
+            meta_path: str,
+    ) -> None:
+        self.url = url
 
-    @property
-    def top_3(self) -> List[RankingObject]:
-        return self._get_top_3()
+        base_dir = Path(__file__).resolve().parent
+        self.out_path = base_dir / out_path / "subsets"
+        self.meta_path = base_dir / meta_path
 
     @cached_property
-    @file_cache("DEFAULT_PARTIAL_RANKING_PATH")
-    def ranks_4_to_228(self) -> List[RankingObject]:
-        return self._get_4_to_228()
+    @file_cache("self.out_path")
+    def ranking_data(self) -> List[RankingObject]:
+        return self.scrape()
 
     def scrape(self) -> List[RankingObject]:
         logger.info("Start scraping Official Capcom Fan Ranking.")
-        monster_rankings = []
 
-        monster_rankings.extend(self.top_3)
-        monster_rankings.extend(self.ranks_4_to_228)
+        rankings = []
+        rankings.extend(self.get_top_3())
+        rankings.extend(self.get_4_to_228())
 
-        return monster_rankings
+        return rankings
     
-    def _get_top_3(self) -> List[RankingObject]:
-        meta_path = AbstractWebScraper.ROOT_PATH / "config" / "metadata.yaml"
-        with open(meta_path, "r", encoding="utf-8") as f:
+    def get_top_3(self) -> List[RankingObject]:
+        with open(self.meta_path, "r", encoding="utf-8") as f:
             meta = yaml.safe_load(f)
 
         top_3_data = meta["monster_metadata"]["top_3"]
@@ -51,10 +54,10 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
 
         return [RankingObject(**entry) for entry in top_3]
     
-    def _get_4_to_228(self) -> List[RankingObject]:
+    def get_4_to_228(self) -> List[RankingObject]:
         top_4_to_bottom = []
 
-        soup = self.retrieve_soup(self.RANKING_URL)
+        soup = self.retrieve_soup(self.url)
         ranking = soup.find('div', class_= 'ranking')
 
         li_top_20_tags = ranking.find_all('li', class_ = 'no-4-18')

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 @dataclass(frozen=True)
 class ModelConfig:
@@ -9,12 +9,14 @@ class ModelConfig:
 
 @dataclass(frozen=True)
 class PathConfig:
-    data_path: str
-    outpath: str
+    out: str
+    meta: str
 
 @dataclass(frozen=True)
 class ScraperConfig:
-    overwrite: Optional[bool] = False
+    overwrite: Optional[bool]
+    polite: Optional[bool] 
+    main: dict[str, Any]
 
 @dataclass(frozen=True)
 class Config:

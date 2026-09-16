@@ -1,18 +1,16 @@
 import pandas as pd
 
+
 class QuestFeatureBuilder:
     """Transforms raw quest data into monster-level features."""
 
-    def __init__(self, df_quest: pd.DataFrame) -> None:
-        self.df_quest = df_quest
-
-    def transform(self) -> pd.DataFrame:
+    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create monster-level features from quest data."""
 
-        df = self.explode_df()
+        df_exploded = self.explode_df(df)
 
-        general_features = self.get_general_features(df)
-        rank_features = self.get_rank_features(df)
+        general_features = self.get_general_features(df_exploded)
+        rank_features = self.get_rank_features(df_exploded)
 
         return general_features.join(rank_features)
 
@@ -21,15 +19,11 @@ class QuestFeatureBuilder:
         df: pd.DataFrame,
     ) -> pd.DataFrame:
 
-        return (
-            df
-            .groupby("monster")
-            .agg(
-                game_appearances=("game", "nunique"),
-                quest_appearances=("quest", "nunique"),
-                assignment_ratio=("is_assignment", "mean"),
-                event_ratio=("is_event", "mean"),
-            )
+        return df.groupby("monster").agg(
+            game_appearances=("game", "nunique"),
+            quest_appearances=("quest", "nunique"),
+            assignment_ratio=("is_assignment", "mean"),
+            event_ratio=("is_event", "mean"),
         )
 
     def get_rank_features(
@@ -38,8 +32,7 @@ class QuestFeatureBuilder:
     ) -> pd.DataFrame:
 
         features = (
-            df
-            .groupby(["monster", "rank"])
+            df.groupby(["monster", "rank"])
             .agg(
                 mean_reward=("reward_zenny", "mean"),
                 mean_points=("reward_points", "mean"),
@@ -48,38 +41,36 @@ class QuestFeatureBuilder:
             .unstack("rank")
         )
 
-        assert type(features) == pd.DataFrame
+        assert isinstance(features, pd.DataFrame)
 
         features.columns = [
-            f"{feature}_{rank}"
-            for feature, rank in features.columns
+            f"{feature}_{rank}" for feature, rank in features.columns
         ]
 
         return features
 
-    def explode_df(self) -> pd.DataFrame:
+    def explode_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create one row per quest-monster relationship."""
+        # Work on a copy to avoid mutating the original input DataFrame
+        df_work = df.copy()
+        df_work["n_targets"] = df_work["targets"].str.len()
 
-        df = self.df_quest.copy()
-
-        df["n_targets"] = df["targets"].str.len()
-
-        df = (
-            df
-            .explode("targets")
+        df_exploded = (
+            df_work.explode("targets")
             .drop_duplicates(subset=["quest", "targets"])
             .rename(columns={"targets": "monster"})
             .reset_index(drop=True)
         )
 
-        df["monster_hp"] = df.apply(
+        # Apply over df_exploded where the 'monster' column exists
+        df_exploded["monster_hp"] = df_exploded.apply(
             self._get_hp,
             axis=1,
         )
 
-        df.drop(columns=["target_hp"], inplace=True)
+        df_exploded.drop(columns=["target_hp"], inplace=True)
 
-        return df
+        return df_exploded
 
     def _get_hp(self, row: pd.Series) -> int:
         target_hp = row["target_hp"]
