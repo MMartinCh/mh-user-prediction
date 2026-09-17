@@ -1,6 +1,7 @@
 import logging
 import re
 from functools import cached_property
+from pathlib import Path
 
 from typing import List
 from urllib.parse import urljoin
@@ -12,20 +13,35 @@ from src.core.helpers import file_cache #type:ignore
 logger = logging.getLogger(__name__)
 
 class WikiScraper(AbstractWebScraper[WikiObject]):
-    WIKI_URL = r"https://monsterhunterwiki.org/wiki/Monster_List"
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "general"
-    WIKI_MONSTER_LINKS_PATH = DATA_PATH / "helpers" / "wiki_monster_links.txt"
+
+    def __init__(
+            self,
+            url: str,
+            out_path: str,
+    ) -> None:
+
+        self.url = url
+
+        base_path = Path(__file__).resolve().parent
+        self.out_path =  base_path / out_path / "subsets"
+        self.links_path = base_path /out_path / "helpers" / "wiki_monster_links.txt"
 
     @cached_property
-    @file_cache("WIKI_MONSTER_LINKS_PATH")
+    @file_cache("self.links_path")
     def monster_links(self) -> List[str]:
+        return self.get_monster_links()
+
+    @cached_property
+    @file_cache("self.links_path")
+    def wiki_data(self) -> List[WikiObject]:
         return self.get_monster_links()
 
     def scrape(self) -> List[WikiObject]:
         """Scrape all monster data from Monster Hunter Wiki and return as list of structured data."""
-        logger.info("Start scraping from MH Wiki.")
+        logger.info("Start scraping from MH Wiki...")
 
         wiki_data = []
+
         try:
             for link in self.monster_links:
                 monster_data = self._get_monster_info(link)
@@ -65,6 +81,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             for attribute in ["Length", "Height", "Foot Size"]:
                 row = size_table.find("th", string=re.compile(attribute)).find_parent("tr")
                 size_dimensions.append(row.find("td").text)
+
             monster_info["size"] = size_dimensions
 
             row_habitats = size_table.find("th", string=re.compile("Habitats")).find_parent("tr").find_next_sibling("tr")
@@ -73,6 +90,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             label_header = soup.find("h3", string="Categories")
             label_table = label_header.find_next_sibling("div", class_="mw-portlet-body")
             labels = [label.text for label in label_table.find_all("li")]
+
             for label in ["Flagship Monsters", "Subspecies", "Variants", "Deviants", "Rare Species", "Collaboration Monsters", "Final Boss Monsters", "Monsters with Themes"]:
                 monster_info[label] = label in labels
             
@@ -113,6 +131,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
         logger.debug(f"Start headline found: {start_headline}")
 
         start_h2 = start_headline.find_parent("h2")
+        
         scrape_range = []
         for sibling in start_h2.next_siblings:
             if sibling.name == "h2":

@@ -1,23 +1,109 @@
 # default factory settings
-# =================
-model:
-  type: RandomForestRegressor
-  n_estimator: 200
-  max_depth: 10
+# ========================
 
-scraper:
-  general:
-    overwrite: None
-    polite: None
-  main:
-    ranking:
-      url: "https://www.monsterhunter.com/20th/en/vote-monster/result/"
+# MODEL
+# ------------------------
+model: # ML prediction model to be trained
+  type: RandomForestRegressor # (str) ML model to be trained 
+  n_estimators: 200 # (int)
+  max_depth: 10 # (int)
 
+# SCRAPERS
+# ------------------------
+scrapers: # Scraper classes, mining data or loading from disk
 
-# default paths
-# =================
-path:
-  out: /data/result
-  meta: /config/game_metadata.yaml/
+  web_settings: # scraper settings for web retrieval, applied to all scrapers
+    overwrite: False # (bool) wether to scrape again and overwrite, when data already cached
+    polite_delay: 0.0 # (float) wether to sleep for specified delay when loading page
+
+  # settings for all main scrapers Ranking, Wiki and Quest
+  ranking:
+    url: https://www.monsterhunter.com/20th/en/vote-monster/result/
+    cache: /data/subsets/ranking_data.csv
+
+  wiki: 
+    url: https://monsterhunterwiki.org/wiki/Monster_List
+    cache: /data/subsets/wiki_data.csv
+
+  quest:
+    cache: /data/subsets/quest_data.csv
+
+    partial: # settings for game-wise quest-scrapers
+      freedom:
+        game: Monster Hunter Freedom
+        generation: 1
+        cache: /data/partial/freedom_quest_data.json
+        utils: 
+          monster_list: /data/utils/mhf_monster_list.txt
+
+      freedom_unite:
+        game: Monster Hunter Freedom Unite
+        generation: 2
+        cache: /data/partial/freedom_unite_quest_data.json
+        utils: 
+          stock_data: /data/utils/freed_unite_stock_data.json
+
+      tri:
+        game: Monster Hunter Tri Ultimate
+        generation: 3
+        cache: /data/partial/tri_quest_data.json
+        utils: 
+          quest_links: /data/utils/tri_quest_links.txt
+
+      portable: # currently not implemented as scraper
+        game: Monster Hunter Portable 3rd
+        generation: 3
+        cache: None
+        utils: {}
+
+      four:
+        game: Monster Hunter Four Ultimate
+        generation: 4
+        cache: /data/partial/four_quest_data.json
+        utils:
+          monster_data: /data/utils/four_monster_data.json
+          monster_links: /data/utils/four_monster_links.txt
+          quest_links: /data/utils/four_quest_links.txt
+
+      generations:
+        game: Monster Hunter Generations Ultimate
+        generation: 4
+        cache: /data/partial/generations_quest_data.json
+        utils: 
+          monster_data: /data/utils/generations_monster_data.json
+          monster_links: /data/utils/generations_monster_links.txt
+          quest_links: /data/utils/generations_quest_links.txt
+
+      world: 
+        game: Monster Hunter World/ Iceborne
+        generation: 5
+        cache: /data/partial/world_quest_data.json
+        utils:
+          monster_data: /data/utils/world_monster_data.json
+          stock_data: /data/utils/world_stock_data.json
+          monster_links: /data/utils/world_monster_links.json
+          quest_links: /data/utils/world_quest_links.txt
+
+      rise:
+        game: Monster Hunter Rise/ Sunbreak
+        generation: 5
+        cache: /data/partial/rise_quest_data.json
+        utils: 
+          monster_data: /data/utils/rise_monster_data.json
+          key_quests: /data/utils/rise_key_quests.txt
+          monster_links: /data/utils/rise_monster_links.txt
+          quest_links: /data/utils/rise_quest_links.txt
+          
+      wilds:
+        game: Monster Hunter Wilds
+        generation: 6
+        cache: /data/partial/wilds_quest_data.json
+        utils: /data/utils/wilds_lookup.json
+
+# PATHS
+# ---------------------
+paths:
+  data_path: /data/
+  metadata_path: /data/utils/game_metadata.yaml/
   
   
