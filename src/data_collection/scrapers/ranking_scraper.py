@@ -5,6 +5,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import List
 
+from config.config_dataclass import RankingScraperConfig, WebSettings #type:ignore
 from src.core.dataclasses import RankingObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
@@ -16,18 +17,20 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
 
     def __init__(
             self,
-            url: str,
-            out_path: str,
-            meta_path: str,
+            config: RankingScraperConfig,
+            web_settings: WebSettings,
+            metadata_path: Path,
     ) -> None:
-        self.url = url
+        super().__init__(
+            url=config.url,
+            web_settings=web_settings,
+        )
 
-        base_dir = Path(__file__).resolve().parent
-        self.out_path = base_dir / out_path / "subsets"
-        self.meta_path = base_dir / meta_path
+        self.cache_path = config.cache
+        self.metadata_path = metadata_path
 
     @cached_property
-    @file_cache("self.out_path")
+    @file_cache("self.cache_path")
     def ranking_data(self) -> List[RankingObject]:
         return self.scrape()
 
@@ -41,7 +44,7 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
         return rankings
     
     def get_top_3(self) -> List[RankingObject]:
-        with open(self.meta_path, "r", encoding="utf-8") as f:
+        with open(self.metadata_path, "r", encoding="utf-8") as f:
             meta = yaml.safe_load(f)
 
         top_3_data = meta["monster_metadata"]["top_3"]

@@ -25,7 +25,7 @@ class ConfigLoader:
 
         return Config(
             model=self._load_model_config(config["model"]),
-            scraper=self._load_scrapers_config(config["scrapers"]),
+            scraper=self._load_scrapers_config(config["scraper"]),
             paths=self._load_paths_config(config["paths"])
         )
 
@@ -45,16 +45,20 @@ class ConfigLoader:
     def _load_scrapers_config(self, data: dict) -> ScraperConfig:
         return ScraperConfig(
             web_settings=WebSettings(
-                overwrite=data["web_settings"]["overwrite"],
                 polite_delay=data["web_settings"]["polite_delay"],
+                timeout=data["web_settings"]["timeout"],
+                user_agent=data["web_settings"]["user_agent"],
             ),
             ranking=RankingScraperConfig(
                 url=data["ranking"]["url"],
                 cache=self.base_path / data["ranking"]["cache"],
+                overwrite=data["ranking"]["overwrite"]
             ),
             wiki=WikiScraperConfig(
                 url=data["wiki"]["url"],
                 cache=self.base_path / data["wiki"]["cache"],
+                overwrite=data["wiki"]["overwrite"],
+                utils=data["wiki"]["utils"]
             ),
             quest=self._load_quest_scraper_config(data["quest"])
         )
@@ -70,11 +74,14 @@ class ConfigLoader:
                 utils={
                     key: self.base_path / path 
                     for key, path in scraper_data["utils"].items()
-                }
+                },
+                overwrite=scraper_data["overwrite"]
+
             ))
         }
 
         return QuestScrapersConfig(
             cache=self.base_path / data["cache"],
             partial=partial,
+            overwrite=data["overwrite"]
         )

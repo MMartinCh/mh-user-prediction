@@ -1,6 +1,9 @@
 import logging
-from typing import List, Optional
+from functools import cached_property
+from typing import Optional
 
+from ....config.config_dataclass import QuestScrapersConfig, WebSettings
+from core.utils.file_cache_module import file_cache #type:ignore
 from src.core.dataclasses import QuestObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.data_collection.scrapers.partial import ( #type:ignore
@@ -21,6 +24,8 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
 
     def __init__(
         self,
+        config: QuestScrapersConfig,
+        web_settings: WebSettings,
         tri_quest_scraper: Optional[TriQuestScraper] = None,
         four_quest_scraper: Optional[FourQuestScraper] = None,
         freedom_quest_scraper: Optional[FreedomQuestScraper] = None,
@@ -30,8 +35,11 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
         wilds_quest_scraper: Optional[WildsQuestScraper] = None, 
         world_quest_scraper: Optional[WorldQuestScraper] = None,
     ) -> None:
+        super().__init__(web_settings=web_settings)
 
-        self.scrapers: List[AbstractWebScraper[QuestObject]] = [
+        self.cache_path = config.cache
+
+        self.scrapers: list[AbstractWebScraper[QuestObject]] = [
             tri_quest_scraper or TriQuestScraper(),
             four_quest_scraper or FourQuestScraper(),
             freedom_quest_scraper or FreedomQuestScraper(),
@@ -42,8 +50,16 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
             wilds_quest_scraper or WildsQuestScraper(),
         ]
 
-    def scrape(self) -> List[QuestObject]:
-        """Scrape quests from all main line games and return a flat list of QuestItems."""
+    @cached_property
+    @file_cache("self.cache_path")
+    def quest_data(self) -> list[QuestObject]:
+        return self._call_partial_scrapers()
+
+    def scrape(self) -> list[QuestObject]:
+        return self.quest_data
+
+    def _call_partial_scrapers(self) -> list[QuestObject]:
+        """Call all partial quest scrapers and return as list of QuestObjects."""
         return [
             quest 
             for scraper in self.scrapers 

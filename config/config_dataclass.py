@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 @dataclass(frozen=True)
 class ModelConfig:
@@ -9,18 +10,26 @@ class ModelConfig:
 
 @dataclass(frozen=True)
 class WebSettings:
-    overwrite: bool = False
-    polite_delay: float = 0.0
+    polite_delay: Optional[float] = None
+    timeout: float = 10.0
+    user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
 
 @dataclass(frozen=True)
 class RankingScraperConfig:
     url: str
     cache: Path
+    overwrite: bool = False
 
 @dataclass(frozen=True)
 class WikiScraperConfig:
     url: str
     cache: Path
+    utils: dict[str, Path]
+    overwrite: bool = False
 
 @dataclass(frozen=True)
 class PartialQuestScraperConfig:
@@ -28,11 +37,13 @@ class PartialQuestScraperConfig:
     generation: int
     cache: Path | None
     utils: dict[str, Path]
+    overwrite: bool = False
 
 @dataclass(frozen=True)
 class QuestScrapersConfig:
     cache: Path
     partial: dict[str, PartialQuestScraperConfig]
+    overwrite: bool = False
 
 @dataclass(frozen=True)
 class ScraperConfig:

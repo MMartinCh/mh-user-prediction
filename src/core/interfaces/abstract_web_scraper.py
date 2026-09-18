@@ -1,65 +1,100 @@
 import logging
-import requests
 from abc import ABC, abstractmethod
-from pathlib import Path
 from time import sleep
-from typing import List, Optional
+from typing import Optional
 
+import requests
 from bs4 import BeautifulSoup
-from playwright.sync_api import Browser, sync_playwright
+from playwright.sync_api import Browser
+
+from config.config_dataclass import WebSettings #type:ignore
 
 logger = logging.getLogger(__name__)
 
 class AbstractWebScraper[T](ABC):
-    """Abstract base class for all web based scrapers"""
+    """Abstract base class for all web-based scrapers."""
 
-    def __init__(self, 
-                 url: Optional[str] = None, 
-                 headers: Optional[dict] = None
-                 ) -> None:
-        
+    def __init__(
+        self,
+        url: Optional[str] = None,
+        web_settings: Optional[WebSettings] = None,
+    ) -> None:
         self.url = url
-        self.headers = headers or {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
+        self.web_settings = web_settings or WebSettings()
 
-    ROOT_PATH = Path(__file__).resolve().parents[3]
-    DATA_PATH = ROOT_PATH / "data"
+        self.headers = {
+            "User-Agent": self.web_settings.user_agent
+        }
 
     @abstractmethod
-    def scrape(self) -> List[T]:
-        """Scrape data and return list of structured entries."""
+    def scrape(self) -> list[T]:
+        """Scrape data and return a list of structured entries."""
         pass
 
-    def retrieve_soup(self, url: Optional[str] = None, polite: bool = True) -> BeautifulSoup | None:
-        """Fetches html from url and returns a BeautifulSoup object."""
+    def retrieve_soup(
+        self,
+        url: Optional[str] = None,
+    ) -> BeautifulSoup | None:
+        """Fetch HTML from a URL and return a BeautifulSoup object."""
+
+        url = url or self.url
 
         if url is None:
-            url = self.url
+            raise ValueError("No URL provided for web request.")
 
-        if polite:
-            sleep(1.0)
+        if self.web_settings.polite_delay:
+            sleep(self.web_settings.polite_delay)
 
         try:
-            logger.info(f"Retrieving SOUP from: {url}")
-            response = requests.get(url, headers=self.headers, timeout=10) #type:ignore
-            
+            logger.info("Retrieving SOUP from: %s", url)
+
+            response = requests.get(
+                url,
+                headers=self.headers,
+                timeout=self.web_settings.timeout,
+            )
+
             if response.status_code == 200:
-                logger.debug(f"Request successful!: {response.status_code}")
+                logger.debug(
+                    "Request successful: %s",
+                    response.status_code,
+                )
                 return BeautifulSoup(response.text, "html.parser")
-            
-            logger.warning(f"Request failed with status: {response.status_code}")
+
+            logger.warning(
+                "Request failed with status: %s",
+                response.status_code,
+            )
             return None
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Network error occurred while fetching {url}: {e}")
+            logger.error(
+                "Network error occurred while fetching %s: %s",
+                url,
+                e,
+            )
             return None
 
-    def retrieve_rendered_soup(self, browser: Browser, url: str) -> BeautifulSoup:
-            logger.info(f"Retrieving RENDERED SOUP from: {url}")
-            page = browser.new_page()
-            try:
-                page.goto(url, wait_until="load")
-                return BeautifulSoup(page.content(), "html.parser")
-            finally:
-                page.close()
+    def retrieve_rendered_soup(
+        self,
+        browser: Browser,
+        url: str,
+    ) -> BeautifulSoup:
+        """Fetch rendered HTML using a Playwright browser."""
+
+        logger.info("Retrieving RENDERED SOUP from: %s", url)
+
+        page = browser.new_page()
+
+        try:
+            page.goto(
+                url,
+                wait_until="load",
+                timeout=int(self.web_settings.timeout * 1000),
+            )
+            return BeautifulSoup(
+                page.content(),
+                "html.parser",
+            )
+        finally:
+            page.close()

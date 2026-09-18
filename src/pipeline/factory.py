@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from ...src.data_collection.repositories import LocalCsvRepository
 from ...src.data_collection.scrapers import QuestScraper, WikiScraper, RankingScraper
 from ...src.features import FeatureAssembler, CrossGameNormalizer, QuestFeatureBuilder
-from ..core.dataclasses.config_dataclass import Config
+from ...config.config_dataclass import Config
 from ..core.interfaces import Model
 from .pipeline import Pipeline
 
@@ -23,19 +23,22 @@ def build_pipeline(config: Config) -> Pipeline:
     )
 
 def _build_quest_scraper(config: Config) -> QuestScraper:
-    return QuestScraper()
+    return QuestScraper(
+        config=config.scraper.quest,
+        web_settings=config.scraper.web_settings,
+    )
 
 def _build_wiki_scraper(config: Config) -> WikiScraper:
-    return WikiScraper()
+    return WikiScraper(
+        config=config.scraper.wiki,
+        web_settings=config.scraper.web_settings
+    )
 
 def _build_ranking_scraper(config: Config) -> RankingScraper:
-    settings = config.scraper.main["ranking"]
-    path = config.path
-
     return RankingScraper(
-        url= settings["url"],
-        out_path= path.out,
-        meta_path= path.meta,
+        config=config.scraper.ranking,
+        web_settings=config.scraper.web_settings,
+        metadata_path=config.paths.metadata_path,
     )
 
 def _build_quest_feature_builder(config: Config) -> QuestFeatureBuilder:

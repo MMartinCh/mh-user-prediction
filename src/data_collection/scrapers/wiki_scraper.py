@@ -1,11 +1,11 @@
 import logging
 import re
 from functools import cached_property
-from pathlib import Path
 
 from typing import List
 from urllib.parse import urljoin
 
+from ....config.config_dataclass import WebSettings, WikiScraperConfig
 from src.core.dataclasses import WikiObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
@@ -16,23 +16,26 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
 
     def __init__(
             self,
-            url: str,
-            out_path: str,
+            config: WikiScraperConfig,
+            web_settings: WebSettings,
     ) -> None:
+        super().__init__(
+            url= config.url,
+            web_settings=web_settings,
+        )
 
-        self.url = url
+        self.overwrite = config.overwrite
 
-        base_path = Path(__file__).resolve().parent
-        self.out_path =  base_path / out_path / "subsets"
-        self.links_path = base_path /out_path / "helpers" / "wiki_monster_links.txt"
+        self.cache_path = config.cache
+        self.monster_links_path = config.utils["monster_links"]
 
     @cached_property
-    @file_cache("self.links_path")
+    @file_cache("self.monster_links_path")
     def monster_links(self) -> List[str]:
         return self.get_monster_links()
 
     @cached_property
-    @file_cache("self.links_path")
+    @file_cache("self.cache_path")
     def wiki_data(self) -> List[WikiObject]:
         return self.get_monster_links()
 
@@ -52,7 +55,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             return wiki_data
             
         except KeyboardInterrupt:
-            logger.warning(f"Manually interrupted with keybord interrupt!")
+            logger.info(f"Manually interrupted with keybord interrupt!")
             return wiki_data
 
     def _get_monster_info(self, link: str) -> WikiObject:
@@ -121,7 +124,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
 
     def _get_monster_links(self) -> List[str]:
         logger.info("Extracting Monster Links from MH Wiki...")
-        soup = self.retrieve_soup(self.WIKI_URL)
+        soup = self.retrieve_soup(self.url)
         start_headline = soup.find("span", class_="mw-headline", id="Large_Monsters")
 
         if not start_headline:
@@ -147,7 +150,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             relative_link = a_tag["href"]
             
             if relative_link not in monster_urls:
-                complete_link = urljoin(self.WIKI_URL, relative_link)
+                complete_link = urljoin(self.url, relative_link)
                 monster_urls.append(complete_link)
 
         logger.debug(f"Monster urls extracted! {len(monster_urls)} elements found.")
