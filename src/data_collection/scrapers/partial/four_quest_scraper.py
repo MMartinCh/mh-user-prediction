@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 from bs4 import BeautifulSoup
 from playwright.sync_api import Browser, sync_playwright
 
+from .....config.config_dataclass import PartialQuestScraperConfig, WebSettings
 from src.core.helpers import file_cache #type:ignore
 from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
 from src.core.dataclasses import QuestObject #type:ignore
@@ -17,21 +18,29 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
     """Partial Scraper Class that scrapes quest data for MH Four Ultimate.
     To be called via QuestScraper class."""
 
-    GAME = "Four Ultimate"
-    GEN = 4
+    def __init__(
+            self,
+            config: PartialQuestScraperConfig,
+            web_settings: WebSettings,
+    ) -> None:
+        super().__init__(web_settings=web_settings)
+
+        self.game = config.game
+        self.generation = config.generation
+
+        self.cache_path = config.cache
+        self.monster_data_path = config.utils["monster_data"]
+        self.monster_links_path = config.utils["monster_links"]
+        self.quest_links_path = config.utils["quest_links"]
+
+        self.overwrite = config.overwrite
 
     QUEST_URL = r"https://kiranico.com/en/mh4u/quest"
     MONSTER_URL = r"https://kiranico.com/en/mh4u/monster"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "four_ultimate"
-    QUEST_DATA_PATH = DATA_PATH / "fu_quest_data.json"
-    MONSTER_DATA_PATH = DATA_PATH / "fu_monster_data.json"
-    QUEST_LINKS_PATH = DATA_PATH / "helpers" / "fu_quest_links.txt"
-    MONSTER_LINKS_PATH = DATA_PATH / "helpers" / "fu_monster_links.txt"
-
     @cached_property
-    @file_cache("QUEST_DATA_PATH")
-    def quest_data(self) -> List[Dict[str,Any]]:
+    @file_cache("self.cache_path", overwrite=...)
+    def quest_data(self) -> list[Dict[str,Any]]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             _quest_data = [
@@ -42,7 +51,7 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             return _quest_data
 
     @cached_property
-    @file_cache("MONSTER_DATA_PATH")
+    @file_cache("self.monster_data_path")
     def monster_data(self) -> List[Dict[str,Any]]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -54,12 +63,12 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             return _monster_data
     
     @cached_property
-    @file_cache("QUEST_LINKS_PATH")
+    @file_cache("self.quest_link_path")
     def quest_links(self) -> List[str]:
         return self._scrape_links("quest")
 
     @cached_property
-    @file_cache("MONSTER_LINKS_PATH")
+    @file_cache("self.monster_link_path")
     def monster_links(self) -> List[str]:
         return self._scrape_links("monster")
 

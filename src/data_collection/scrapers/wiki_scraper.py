@@ -1,11 +1,10 @@
 import logging
 import re
 from functools import cached_property
-
-from typing import List
+from typing import Any
 from urllib.parse import urljoin
 
-from ....config.config_dataclass import WebSettings, WikiScraperConfig
+from config.config_dataclass import WebSettings, WikiScraperConfig #type:ignore
 from src.core.dataclasses import WikiObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
 from src.core.helpers import file_cache #type:ignore
@@ -31,20 +30,25 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
 
     @cached_property
     @file_cache("self.monster_links_path")
-    def monster_links(self) -> List[str]:
-        return self.get_monster_links()
+    def monster_links(self) -> list[str]:
+        return self._get_monster_links()
 
     @cached_property
     @file_cache("self.cache_path")
-    def wiki_data(self) -> List[WikiObject]:
-        return self.get_monster_links()
+    def wiki_data(self) -> list[dict[str, Any]]:
+        return self._scrape_wiki_data()
 
-    def scrape(self) -> List[WikiObject]:
+    def scrape(self) -> list[WikiObject]:
+        return [
+            self._pack_wiki_object(monster)
+            for monster in self.wiki_data
+        ]
+
+    def _scrape_wiki_data(self) -> list[dict[str, Any]]:
         """Scrape all monster data from Monster Hunter Wiki and return as list of structured data."""
         logger.info("Start scraping from MH Wiki...")
 
         wiki_data = []
-
         try:
             for link in self.monster_links:
                 monster_data = self._get_monster_info(link)
@@ -52,22 +56,22 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
                     wiki_data.append(monster_data)
             
             logger.info(f"MH Wiki successfully scraped! {len(wiki_data)} entries collected.")
-            return wiki_data
             
         except KeyboardInterrupt:
             logger.info(f"Manually interrupted with keybord interrupt!")
-            return wiki_data
 
-    def _get_monster_info(self, link: str) -> WikiObject:
+        return wiki_data
+
+    def _get_monster_info(self, link: str) -> dict[str, Any]:
         """Extract one MHWikiItem for Monster from individual monster page."""
         soup = self.retrieve_soup(link)
         name_from_link = link.split("/")[-1]
 
+        monster_info = {}
         try:
-            monster_info = {}
             info_table = soup.find("table", class_ = "wikitable monster-game-info")
 
-            monster_info["monster_name"] = info_table.find("span", class_ = "custom-gallery").get("data-monster").strip()
+            monster_info["monster"] = info_table.find("span", class_ = "custom-gallery").get("data-monster").strip()
             
             for attribute in ["Original", "Latest", "Classification"]:
                 row = info_table.find("th", string=re.compile(attribute)).find_parent("tr")
@@ -98,31 +102,13 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
                 monster_info[label] = label in labels
             
             logger.info(f"Data successfully scraped for {name_from_link}")
-            
-            return WikiObject(
-                monster_name=monster_info.get("monster_name"),
-                first_appearance=monster_info.get("original"),
-                latest_appearance=monster_info.get("latest"),
-                classification=monster_info.get("classification"),
-                elements=monster_info.get("elements", []),
-                ailments=monster_info.get("status effects", []),
-                weaknesses=monster_info.get("weakest to", []),
-                size=monster_info["size"],
-                habitats=monster_info.get("habitats", []),
-                is_flagship=monster_info.get("Flagship Monsters", False),
-                is_subspecies=monster_info.get("Subspecies", False),
-                is_variant=monster_info.get("Variants", False),
-                is_deviant=monster_info.get("Deviants", False),
-                is_rare_species=monster_info.get("Rare Species", False),
-                is_collaboration=monster_info.get("Collaboration Monsters", False),
-                is_final_boss=monster_info.get("Final Boss Monsters", False),
-                has_theme=monster_info.get("Monsters with Themes", False)
-            )
 
         except AttributeError as e:
             logger.warning(f"Attribute not found: {e}. Article suspected as category headline: {name_from_link}")
 
-    def _get_monster_links(self) -> List[str]:
+        return monster_info
+
+    def _get_monster_links(self) -> list[str]:
         logger.info("Extracting Monster Links from MH Wiki...")
         soup = self.retrieve_soup(self.url)
         start_headline = soup.find("span", class_="mw-headline", id="Large_Monsters")
@@ -156,3 +142,24 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
         logger.debug(f"Monster urls extracted! {len(monster_urls)} elements found.")
     
         return monster_urls
+
+    def _pack_wiki_object(self, data: dict[str, Any]) -> WikiObject:
+        return WikiObject(
+            monster=data["monster"],
+            first_appearance=data.get("original"),
+            latest_appearance=data.get("latest"),
+            classification=data.get("classification"),
+            elements=data.get("elements", []),
+            ailments=data.get("status effects", []),
+            weaknesses=data.get("weakest to", []),
+            size=data["size"],
+            habitats=data.get("habitats", []),
+            is_flagship=data.get("Flagship Monsters", False),
+            is_subspecies=data.get("Subspecies", False),
+            is_variant=data.get("Variants", False),
+            is_deviant=data.get("Deviants", False),
+            is_rare_species=data.get("Rare Species", False),
+            is_collaboration=data.get("Collaboration Monsters", False),
+            is_final_boss=data.get("Final Boss Monsters", False),
+            has_theme=data.get("Monsters with Themes", False)
+            )

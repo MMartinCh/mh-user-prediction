@@ -1,8 +1,8 @@
 import logging
 from functools import cached_property
-from typing import Optional
+from typing import Any, Optional
 
-from ....config.config_dataclass import QuestScrapersConfig, WebSettings
+from config.config_dataclass import QuestScrapersConfig, WebSettings #type:ignore
 from core.utils.file_cache_module import file_cache #type:ignore
 from src.core.dataclasses import QuestObject #type:ignore
 from src.core.interfaces import AbstractWebScraper #type:ignore
@@ -56,7 +56,10 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
         return self._call_partial_scrapers()
 
     def scrape(self) -> list[QuestObject]:
-        return self.quest_data
+        return [
+            self._pack_quest_object(data)
+            for data in self.quest_data
+        ]
 
     def _call_partial_scrapers(self) -> list[QuestObject]:
         """Call all partial quest scrapers and return as list of QuestObjects."""
@@ -65,3 +68,23 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
             for scraper in self.scrapers 
             for quest in scraper.scrape()
         ]
+
+    def _unpack_quest_object(self, data: dict[str, Any]) -> QuestObject:
+        return QuestObject(
+            title=data["quest"],
+            quest_id=data.get("id"),
+            game=data["game"],
+            generation=data["generation"],
+            rank=data.get("rank"),
+            level=data.get("level"),
+            hub=data.get("hub"),
+            location=data.get("location"),
+            is_assignment=data.get("is_assignment", False),
+            is_key=data.get("is_key", False),
+            is_event=data.get("is_event", False),
+            targets=data["targets"],
+            target_hp=data.get("target_hp", {}),
+            reward_zenny=data.get("reward_zenny", 0),
+            reward_points=data.get("reward_points", 0),
+            requirement=data.get("requirement"),
+        )

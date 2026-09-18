@@ -4,7 +4,7 @@ from typing import List, Optional
 @dataclass(frozen=True)
 class WikiObject:
     """DTO retrieved from the Monster Hunter Wiki - Monster Overview site and recursive Monster links."""
-    monster_name: str
+    monster: str
 
     first_appearance: Optional[str] = None
     latest_appearance: Optional[str] = None
