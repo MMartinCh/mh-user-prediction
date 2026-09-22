@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Optional
 
 @dataclass(frozen=True)
 class QuestObject:
@@ -21,8 +21,8 @@ class QuestObject:
     is_key: Optional[bool] = False
     is_event: Optional[bool] = False
 
-    targets: List[str] = field(default_factory=list)
-    target_hp: List[Dict[str,int]] = field(default_factory=list)
+    targets: list[str] = field(default_factory=list)
+    target_hp: dict[str,int] = field(default_factory=dict)
 
     reward_zenny: Optional[int] = 0
     reward_points: Optional[int] = 0

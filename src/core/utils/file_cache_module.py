@@ -8,15 +8,16 @@ logger = logging.getLogger(__name__)
 
 def file_cache(
         path_attr: str, 
+        overwrite_attr: str,
         dataclass_cls: type | None = None, 
         index_col: str | None = None,
-        overwrite: bool | None = None
         ):
     
     def decorator(scrape_func):
         @wraps(scrape_func)
         def wrapper(self):
             path: Path = getattr(self, path_attr)
+            overwrite: bool = getattr(self, overwrite_attr, False)
             data_name = path.stem.upper()
             file_ending = path.suffix
 

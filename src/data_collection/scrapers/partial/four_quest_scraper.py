@@ -2,15 +2,15 @@ import logging
 import re
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import Browser, sync_playwright
 
-from .....config.config_dataclass import PartialQuestScraperConfig, WebSettings
-from src.core.helpers import file_cache #type:ignore
-from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses import QuestObject #type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.utils import file_cache 
+from src.core.interfaces.abstract_web_scraper import AbstractWebScraper 
+from src.core.dataclasses import QuestObject 
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +39,11 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
     MONSTER_URL = r"https://kiranico.com/en/mh4u/monster"
 
     @cached_property
-    @file_cache("self.cache_path", overwrite=...)
-    def quest_data(self) -> list[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.cache_path", 
+        overwrite_attr="self.overwrite",
+    )
+    def quest_data(self) -> list[dict[str,Any]]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             _quest_data = [
@@ -51,8 +54,11 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             return _quest_data
 
     @cached_property
-    @file_cache("self.monster_data_path")
-    def monster_data(self) -> List[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.monster_data_path",
+        overwrite_attr="self.overwrite"
+    )
+    def monster_data(self) -> list[dict[str, Any]]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             _monster_data = [
@@ -63,16 +69,22 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             return _monster_data
     
     @cached_property
-    @file_cache("self.quest_link_path")
-    def quest_links(self) -> List[str]:
+    @file_cache(
+        path_attr="self.quest_link_path",
+        overwrite_attr="self.overwrite",
+    )
+    def quest_links(self) -> list[str]:
         return self._scrape_links("quest")
 
     @cached_property
-    @file_cache("self.monster_link_path")
-    def monster_links(self) -> List[str]:
+    @file_cache(
+        path_attr="self.monster_link_path",
+        overwrite_attr="self.overwrite",
+    )
+    def monster_links(self) -> list[str]:
         return self._scrape_links("monster")
 
-    def scrape(self) -> List[QuestObject]:
+    def scrape(self) -> list[QuestObject]:
         hp_lookup = {
             monster: hp
             for monster_dict in self.monster_data
@@ -101,14 +113,14 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
 
             complete_data.append(
                 QuestObject(
-                    title=quest.get("title"),
-                    game=self.GAME,
-                    generation=self.GEN,
+                    title=quest["title"],
+                    game=self.game,
+                    generation=self.generation,
                     rank=rank,
                     level=quest.get("level"),
                     is_assignment=quest.get("is_urgent"),
                     is_event=quest.get("is_event"),
-                    targets=quest.get("targets"),
+                    targets=quest["targets"],
                     target_hp=target_hp,
                     reward_zenny=quest.get("zenny"),
                     reward_points=quest.get("points"),
@@ -117,7 +129,7 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
 
         return complete_data
 
-    def scrape_quest(self, browser:Browser, link:str) -> Dict[str,Any]:
+    def scrape_quest(self, browser:Browser, link:str) -> dict[str,Any]:
         soup = self.retrieve_rendered_soup(browser, link)
         div = soup.select_one("div.col-sm-3")
 
@@ -201,7 +213,7 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
                 rank = "MR"
         return rank
 
-    def _scrape_links(self, type_: str) -> List[str]:
+    def _scrape_links(self, type_: str) -> list[str]:
         if not type_.lower() in ["monster", "quest"]:
             raise AttributeError(f"Type {type_} no suitable category. Try MONSTER or QUEST...")
 
