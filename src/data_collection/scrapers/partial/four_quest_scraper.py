@@ -4,17 +4,17 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, soup, Tag
 from playwright.sync_api import Browser, sync_playwright
 
 from config.config_dataclass import PartialQuestScraperConfig, WebSettings
 from src.core.utils import file_cache 
-from src.core.interfaces.abstract_web_scraper import AbstractWebScraper 
+from src.core.interfaces.abstract_quest_scraper import AbstractQuestScraper
 from src.core.dataclasses import QuestObject 
 
 logger = logging.getLogger(__name__)
 
-class FourQuestScraper(AbstractWebScraper[QuestObject]):
+class FourQuestScraper(AbstractQuestScraper):
     """Partial Scraper Class that scrapes quest data for MH Four Ultimate.
     To be called via QuestScraper class."""
 
@@ -23,17 +23,14 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             config: PartialQuestScraperConfig,
             web_settings: WebSettings,
     ) -> None:
-        super().__init__(web_settings=web_settings)
+        super().__init__(
+            config=config,
+            web_settings=web_settings,
+        )
 
-        self.game = config.game
-        self.generation = config.generation
-
-        self.cache_path = config.cache
-        self.monster_data_path = config.utils["monster_data"]
-        self.monster_links_path = config.utils["monster_links"]
-        self.quest_links_path = config.utils["quest_links"]
-
-        self.overwrite = config.overwrite
+        self.monster_data_path = self.utils["monster_data"]
+        self.monster_links_path = self.utils["monster_links"]
+        self.quest_links_path = self.utils["quest_links"]
 
     QUEST_URL = r"https://kiranico.com/en/mh4u/quest"
     MONSTER_URL = r"https://kiranico.com/en/mh4u/monster"
@@ -88,7 +85,7 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
         hp_lookup = {
             monster: hp
             for monster_dict in self.monster_data
-            if (monster := monster_dict.get("monster_name"))
+            if (monster := monster_dict.get("monster"))
             and (hp := {
                 "base": monster_dict.get("base_hp"),
                 "lr": monster_dict.get("lr_hp"),
@@ -131,9 +128,13 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
 
     def scrape_quest(self, browser:Browser, link:str) -> dict[str,Any]:
         soup = self.retrieve_rendered_soup(browser, link)
+
         div = soup.select_one("div.col-sm-3")
+        assert isinstance(div, BeautifulSoup)
 
         h1_tag = soup.find("h1")
+        assert isinstance(h1_tag, Tag)
+
         title = "".join([element for element in h1_tag.contents if isinstance(element, str)]).strip()
 
         targets = [
@@ -141,14 +142,20 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
                 for target in div.find_all(
                     "a", string=True, href=re.compile(r"monster")
                     )
-                ] 
+                ]
+        
         quest_type = self._get_quest_attribute(div, "Type")
         if not quest_type in ["Hunting", "Slaying", "Special"] or targets is None:
             return {}
 
-        hub_tags = div.find("td", colspan="2", string=True).text.strip().split(" ")
-        hub = hub_tags[0]
-        level = int(hub_tags[1])
+        hub = ""
+        level = 0
+        hub_tag = div.find("td", colspan="2", string=True)
+
+        if hub_tag:
+            hub_text = hub_tag.text.strip().split(" ")
+            hub = hub_text[0]
+            level = int(hub_text[1])
 
         raw_reward = self._get_quest_attribute(div, "Reward")
         zenny = int(raw_reward.replace(",","").replace("z","")) if raw_reward and raw_reward.replace(",","").replace("z","").strip().isdigit() else 0
@@ -170,22 +177,28 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             "points": points,
         }
 
-    def scrape_monster(self, browser:Browser, link:str) -> Dict[str,Any]:
+    def scrape_monster(self, browser:Browser, link:str) -> dict[str,Any]:
         soup = self.retrieve_rendered_soup(browser, link)
+        h1_tag = soup.find("h1")
 
-        monster_name = "".join(
-            element for element in soup.find("h1") 
-            if isinstance(element, str)
-            ).strip()
+        monster_name = "" 
+        if isinstance(h1_tag, Tag):
+            monster_name = "".join(
+                element for element in h1_tag
+                if isinstance(element, str)
+                ).strip()
 
         hp_header = soup.find("h5", string="HP")
-        hp_table = hp_header.find_next("table")
-
         size_header = soup.find("h5", string="Crown Sizes")
+     
+        assert isinstance(hp_header, Tag)
+        assert isinstance(size_header, Tag)
+
+        hp_table = hp_header.find_next("table")
         size_table = size_header.find_next("table")
 
         return {
-            "monster_name": monster_name,
+            "monster": monster_name,
             "base_hp": float(self._get_quest_attribute(hp_table, "Base HP", "0").replace("HP","").replace(",","").strip()), #type:ignore
             "lr_hp": float(self._get_quest_attribute(hp_table, "Low", "0").replace("HP","").replace(",","").strip()), #type:ignore
             "hr_hp": float(self._get_quest_attribute(hp_table, "High", "0").replace("HP","").replace(",","").strip()), #type:ignore
@@ -195,9 +208,13 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
             "max_size": float(self._get_quest_attribute(hp_table, "King", "0").replace("<","").replace(">","")), #type:ignore
         }
 
-    def _get_quest_attribute(self, soup: BeautifulSoup, attribute: str, default:Any = None) -> Any | None:
+    def _get_quest_attribute(self, soup: BeautifulSoup, attribute: str, default: Any = None) -> Any | None:
         col = soup.find("td", string=re.compile(attribute))
-        return col.find_next("td").get_text(strip=True) if col else default #type:ignore
+        if col:
+            td = col.find_next("td")
+            if td:
+                return td.get_text(strip=True)
+        return default
 
     def _match_rank(self, hub:str, level:int, title:str) -> str:
         rank = "LR"
@@ -219,6 +236,8 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
 
         url = getattr(self, f"{type_.upper()}_URL")
         soup = self.retrieve_soup(url)
+        assert isinstance(soup, BeautifulSoup)
+
         return [
             link
             for row in soup.find_all(
@@ -226,6 +245,8 @@ class FourQuestScraper(AbstractWebScraper[QuestObject]):
                     string=True, 
                     href=re.compile(rf"^https://kiranico.com/en/mh4u/{type_.lower()}/\d+/.*")
                     )
-                    if (link := row.get("href"))
+                    if isinstance(row, Tag) 
+                    and (link := row.get("href"))
+                    and isinstance(link, str)
         ]
 

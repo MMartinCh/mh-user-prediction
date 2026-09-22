@@ -1,36 +1,43 @@
 import logging
 import re
 from functools import cached_property
-from pathlib import Path
-from typing import cast, Any, Dict, List
+from typing import cast, Any
 
-from bs4 import BeautifulSoup, Tag
-from playwright.sync_api import Browser, sync_playwright
+from bs4 import Tag
+from playwright.sync_api import sync_playwright
 
-from src.core.helpers import file_cache #type:ignore
-from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestObject #type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.utils import file_cache 
+from src.core.interfaces.abstract_quest_scraper import AbstractQuestScraper 
+from src.core.dataclasses import QuestObject
 
 logger = logging.getLogger(__name__)
 
-class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
+class FreedomQuestScraper(AbstractQuestScraper):
     """Partial Scraper Class that scrapes quest data for MH Freedom.
     To be called via QuestScraper class."""
 
-    GAME = "Freedom"
-    GEN = 1
+    def __init__(
+            self,
+            config: PartialQuestScraperConfig,
+            web_settings: WebSettings,
+    ) -> None:
+        super().__init__(
+            config=config,
+            web_settings=web_settings,
+        )
+        self.monster_list_path = self.utils["monster_list"]
 
     VILLAGE_QUEST_URL = r"https://monsterhunter.fandom.com/wiki/MHF1:_Village_Quests"
     GUILD_QUEST_URL = r"https://monsterhunter.fandom.com/wiki/MHF1:_Guild_Quests"
     MONSTER_URL = r"https://monsterhunter.fandom.com/wiki/MHF1:_Monsters"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "freedom"
-    QUEST_DATA_PATH = DATA_PATH / "freedom_quest_data.json"
-    MONSTER_LIST_PATH = DATA_PATH / "helpers" / "monster_list.txt"
-
     @cached_property
-    @file_cache("QUEST_DATA_PATH", overwrite=True)
-    def quest_data(self) -> List[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite",
+    )
+    def quest_data(self) -> list[dict[str, Any]]:
         _quest_data = []
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=False)
@@ -39,45 +46,52 @@ class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
                 hub = "Village" if "Village" in url else "Guild"
                 soup = self.retrieve_rendered_soup(browser, url)
                 quest_tables = soup.find_all("table", class_="themetable")
-                _quest_data.extend([
+
+                _quest_data.extend(
+                    [
                         quest 
                         for table in quest_tables
-                        if (quest := self.scrape_quest(table, hub))
-                    ])
+                        if isinstance(table, Tag)
+                        and (quest := self.scrape_quest(table, hub))
+                    ]
+                )
 
             browser.close()
         return _quest_data
 
     @cached_property
-    @file_cache("MONSTER_LIST_PATH")
-    def monster_list(self) -> List[str]:
+    @file_cache(
+        path_attr="self.monster_list_path",
+        overwrite_attr="self.overwrite",
+    )
+    def monster_list(self) -> list[str]:
         return self._scrape_monster_list()
 
-    def scrape(self) -> List[QuestObject]:
+    def scrape(self) -> list[QuestObject]:
         return [
             QuestObject(
-                title= quest.get("title"),
-                quest_id= f"{self.GAME}_{i}",
-                game= self.GAME,
-                generation= self.GEN,
+                title= quest["title"],
+                quest_id= f"{self.game}_{i}",
+                game= self.game,
+                generation= self.generation,
                 rank= quest.get("rank"),
                 level= quest.get("level"),
                 is_assignment= quest.get("is_urgent"),
-                targets= quest.get("objective"),
+                targets= quest["objective"],
                 reward_zenny= quest.get("zenny"),
                 reward_points= quest.get("points"),
             ) for i, quest in enumerate(self.quest_data)
         ]
 
-    def scrape_quest(self, table: Tag, hub: str) -> Dict[str, Any] | None:
-        rows = cast(List[Tag], table.find_all("tr"))
+    def scrape_quest(self, table: Tag, hub: str) -> dict[str, Any] | None:
+        rows = cast(list[Tag], table.find_all("tr"))
 
         header_row = rows[0].find_all("th") 
         objective_row = cast(Tag, rows[1])
 
         targets = [
                 target 
-                for objective in cast(List[Tag], objective_row.find_all("a", href=True, title=True))
+                for objective in cast(list[Tag], objective_row.find_all("a", href=True, title=True))
                 if (target := objective.get("title"))
             ]
         if not targets: 
@@ -100,7 +114,7 @@ class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
             "points": self._get_attribute(table, "HR Points", "int"),
         }
 
-    def _get_attribute(self, section: Tag, attribute: str, type_: str = "str") -> str|int|None:
+    def _get_attribute(self, section: Tag, attribute: str, type_: str = "str") -> str | int | None:
         th_match = section.find(
             lambda tag: tag.name == "th" and re.search(rf"\b{attribute}\b", tag.get_text(), re.IGNORECASE) #type:ignore
         )
@@ -123,7 +137,7 @@ class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
 
         return content
 
-    def _match_rank(self, tab_string:str, hub: str) -> Dict[str,str|int]:
+    def _match_rank(self, tab_string:str, hub: str) -> dict[str,str|int]:
         level, rank = 0, "LR"
         match = re.search(r"(★+)", tab_string)
         if match:
@@ -145,23 +159,30 @@ class FreedomQuestScraper(AbstractWebScraper[QuestObject]):
             "rank": rank
         }
 
-    def _scrape_monster_list(self) -> List[str]:
+    def _scrape_monster_list(self) -> list[str]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=False)
 
             soup = self.retrieve_rendered_soup(browser=browser, url=self.MONSTER_URL)
             start_header = soup.find("span", class_="mw-headline", id="Large_Monsters", string="Large Monsters")
 
+            assert isinstance(start_header, Tag)
+            
             t1 = start_header.find_next("table")
+            t1 = t1 if isinstance(t1, Tag) else None
+            
             t2 = t1.find_next("table") if t1 else None
+            t2 = t2 if isinstance(t2, Tag) else None
+            
             tables = [t for t in (t1, t2) if t]
 
             browser.close()
 
         return [
-            title
+            title.strip()
             for table in tables
             for a in table.find_all("a", href=True, title=True)
-            if a.find("font")
-            and (title := a.get("title", "").strip())
+            if isinstance(a, Tag)                     
+            and a.find("font") is not None            
+            and isinstance(title := a.get("title"), str) 
         ]
