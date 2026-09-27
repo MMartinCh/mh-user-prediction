@@ -3,47 +3,52 @@ import requests
 from functools import cached_property
 from typing import Any, Dict, List
 
-from src.core.helpers import file_cache #type:ignore
-from src.core.interfaces.abstract_web_scraper import AbstractWebScraper #type:ignore
-from src.core.dataclasses.quest_data import QuestObject #type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.utils import file_cache 
+from src.core.interfaces.abstract_quest_scraper import AbstractQuestScraper
+from src.core.dataclasses import QuestObject 
 
 logger = logging.getLogger(__name__)
 
-class FUQuestScraper(AbstractWebScraper[QuestObject]):
+class FUQuestScraper(AbstractQuestScraper):
     """Scrapes quests for Freedom Unite and returns list of quest items."""
-    GAME = "Freedom Unite"
-    GEN = 2
+
+    def __init__(
+            self, 
+            config: PartialQuestScraperConfig, 
+            web_settings: WebSettings
+            ) -> None:
+        super().__init__(
+            config=config, 
+            web_settings=web_settings,
+            )
+
+        self.quest_data_path = config.utils["stock_data"]
 
     SOURCE_REPO = r"Kolyn090/mhfu-db/refs/heads/main/Quests/"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "freedom_unite"
-    CACHE_DATA = DATA_PATH / "freedom_unite_cache_data.json" 
-    QUEST_DATA_PATH = DATA_PATH / "freedom_unite_quest_data.json"
-
     @cached_property
-    @file_cache("QUEST_DATA_PATH")
-    def quest_data(self) -> List[Dict[str,Any]]:
-        return []
-
-    @cached_property
-    @file_cache("CACHE_DATA")
-    def cached_quest_data(self) -> List[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite",
+        )
+    def cached_quest_data(self) -> list[dict[str, Any]]:
         return self.fetch_quest_data()
 
     @cached_property
-    def raw_cache_data(self) -> Dict[str, List[Dict[str, Any]]]:
+    def raw_cache_data(self) -> dict[str, list[dict[str, Any]]]:
         return self._fetch_handler_data_from_github() 
 
-    def scrape(self) -> List[QuestObject]:
+    def scrape(self) -> list[QuestObject]:
         return [
             QuestObject(
-                title=quest.get("name"),
-                game=self.GAME,
-                generation=self.GEN,
+                title=quest["name"],
+                game=self.game,
+                generation=self.generation,
                 rank=self._match_rank(handler = quest.get("handler")),
                 level=quest.get("difficulty"),
                 is_assignment=quest.get("quest-type", "").strip() == "key",
-                targets=quest.get("difficulty"),
+                targets=quest["difficulty"],
                 reward_zenny=quest.get("reward")
             )
             for quest in self.cached_quest_data
@@ -65,7 +70,7 @@ class FUQuestScraper(AbstractWebScraper[QuestObject]):
                 rank = f"unknown: {handler}"
         return rank
 
-    def fetch_quest_data(self) -> List[Dict[str, Any]]:
+    def fetch_quest_data(self) -> list[dict[str, Any]]:
         return [
             {**quest, "handler": handler}
             for handler, quest_list in self.raw_cache_data.items()
@@ -73,7 +78,7 @@ class FUQuestScraper(AbstractWebScraper[QuestObject]):
             if isinstance(quest, dict) 
         ]
 
-    def _fetch_handler_data_from_github(self) -> Dict[str, List[Dict[str, Any]]]:
+    def _fetch_handler_data_from_github(self) -> dict[str, list[dict[str, Any]]]:
         files_to_fetch = {
             "Elder" : "elder.json",
             "Nekoht" : "nekoht.json",

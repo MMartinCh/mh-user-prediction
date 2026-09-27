@@ -4,10 +4,13 @@ from functools import cached_property
 from typing import Any
 from urllib.parse import urljoin
 
-from config.config_dataclass import WebSettings, WikiScraperConfig #type:ignore
-from src.core.dataclasses import WikiObject #type:ignore
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.helpers import file_cache #type:ignore
+from bs4 import Tag
+from bs4.element import NavigableString
+
+from config.config_dataclass import WebSettings, WikiScraperConfig 
+from src.core.dataclasses import WikiObject 
+from src.core.interfaces import AbstractWebScraper 
+from src.core.utils import file_cache 
 
 logger = logging.getLogger(__name__)
 
@@ -18,30 +21,37 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             config: WikiScraperConfig,
             web_settings: WebSettings,
     ) -> None:
+        
         super().__init__(
-            url= config.url,
+            cache=config.cache,
+            overwrite=config.overwrite,
+            url=config.url,
             web_settings=web_settings,
         )
 
-        self.overwrite = config.overwrite
-
-        self.cache_path = config.cache
         self.monster_links_path = config.utils["monster_links"]
 
     @cached_property
-    @file_cache("self.monster_links_path")
+    @file_cache(
+        path_attr="monster_links_path",
+        overwrite_attr="overwrite",
+    )
     def monster_links(self) -> list[str]:
         return self._get_monster_links()
 
     @cached_property
-    @file_cache("self.cache_path")
+    @file_cache(
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
+    )
     def wiki_data(self) -> list[dict[str, Any]]:
         return self._scrape_wiki_data()
 
     def scrape(self) -> list[WikiObject]:
         return [
-            self._pack_wiki_object(monster)
+            monster_data
             for monster in self.wiki_data
+            if (monster_data := self._pack_wiki_object(monster))
         ]
 
     def _scrape_wiki_data(self) -> list[dict[str, Any]]:
@@ -64,53 +74,119 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
 
     def _get_monster_info(self, link: str) -> dict[str, Any]:
         """Extract one MHWikiItem for Monster from individual monster page."""
+
         soup = self.retrieve_soup(link)
-        name_from_link = link.split("/")[-1]
+        
+        name_from_link = (link
+                          .split("/")[-1]
+                          .replace("_", " ")
+                          .strip()
+                          )
+        
+        if soup is None:
+            logger.warning(
+                "No soup found for %s. Link: %s",            
+                name_from_link, 
+                link
+                )
+            return {}
 
-        monster_info = {}
-        try:
-            info_table = soup.find("table", class_ = "wikitable monster-game-info")
+        monster_data = {}
+        monster_data["monster"] = name_from_link
 
-            monster_info["monster"] = info_table.find("span", class_ = "custom-gallery").get("data-monster").strip()
+        info_table = soup.find("table", class_ = "wikitable monster-game-info")
+
+        if not isinstance(info_table, Tag):
+            logger.warning(
+                "No Info Table found for %s. Link: %s", 
+                name_from_link, 
+                link
+                )
+            return {}
+
+        for attribute in ["Original", "Latest", "Classification"]:
+            th_element = info_table.find("th", string=re.compile(attribute, re.IGNORECASE))
             
-            for attribute in ["Original", "Latest", "Classification"]:
-                row = info_table.find("th", string=re.compile(attribute)).find_parent("tr")
-                monster_info[attribute.lower()] = row.find("td").text.strip()
+            if th_element:
+                row = th_element.find_parent("tr")
+                
+                if isinstance(row, Tag) and isinstance(row_a := row.find("a"), Tag):
+                    monster_data[attribute.lower()] = row_a.text.strip()
 
-            for attribute in ["Elements", "Status Effects", "Weakest To"]:
-                row = info_table.find("th", string=re.compile(attribute)).find_parent("tr")
-                containers = row.find_all("span", typeof="mw:File")
-                monster_info[attribute.lower()] = [c.find("a").get("title").strip() for c in containers]
+        for attribute in [
+            "Elements", 
+            "Status Effects", 
+            "Weakest To"
+        ]:
+            row = info_table.find("th", string=re.compile(attribute))
+            assert isinstance(row, Tag)
 
-            size_table = soup.find("table", class_="wikitable", align="right", style="margin: 0rem 0rem 1rem 1rem; max-width:450px; clear:both;")
+            if row_tr := row.find_parent("tr"):
+                assert isinstance(row_tr, Tag)
+                containers = row_tr.find_all("span", typeof="mw:File")
+                assert isinstance(containers, list)
 
-            size_dimensions = []
-            for attribute in ["Length", "Height", "Foot Size"]:
-                row = size_table.find("th", string=re.compile(attribute)).find_parent("tr")
-                size_dimensions.append(row.find("td").text)
+                for container in containers:
+                    assert isinstance(container, Tag)
+                    
+                    a = container.find("a")
+                    assert isinstance(a, Tag)
 
-            monster_info["size"] = size_dimensions
+                    title = a.get("title")
+                    assert isinstance(title, str)
 
-            row_habitats = size_table.find("th", string=re.compile("Habitats")).find_parent("tr").find_next_sibling("tr")
-            monster_info["habitats"] = [h.text.strip() for h in row_habitats.find_all("a")]
+                    monster_data[attribute.lower()] = title.strip()
 
-            label_header = soup.find("h3", string="Categories")
+        size_table = soup.find(
+            "table", 
+            class_="wikitable", 
+            align="right",
+            style="margin: 0rem 0rem 1rem 1rem; max-width:350px; clear:both;",
+        )
+
+        assert isinstance(size_table, Tag)
+
+        habitat_rows = size_table.find_all("td", colspan="2")
+
+        monster_data["habitats"] = [
+            habitat.text.strip()
+            for row in habitat_rows
+            if isinstance(row, Tag)
+            if (habitat := row.find("a"))
+        ]
+
+        labels = []
+        label_header = soup.find("h3", string="Categories")
+        if label_header:
             label_table = label_header.find_next_sibling("div", class_="mw-portlet-body")
+            assert isinstance(label_table, Tag)
+
             labels = [label.text for label in label_table.find_all("li")]
 
-            for label in ["Flagship Monsters", "Subspecies", "Variants", "Deviants", "Rare Species", "Collaboration Monsters", "Final Boss Monsters", "Monsters with Themes"]:
-                monster_info[label] = label in labels
-            
-            logger.info(f"Data successfully scraped for {name_from_link}")
+        for label in [
+            "Flagship Monsters", 
+            "Subspecies", 
+            "Variants", 
+            "Deviants", 
+            "Rare Species", 
+            "Collaboration Monsters", 
+            "Final Boss Monsters", 
+            "Monsters with Themes"
+            ]:
+            monster_data[label] = label in labels
+        
+        logger.info("Data successfully scraped for %s", name_from_link)
 
-        except AttributeError as e:
-            logger.warning(f"Attribute not found: {e}. Article suspected as category headline: {name_from_link}")
-
-        return monster_info
+        return monster_data
 
     def _get_monster_links(self) -> list[str]:
         logger.info("Extracting Monster Links from MH Wiki...")
+        
+        assert isinstance(self.url, str)
         soup = self.retrieve_soup(self.url)
+        if soup is None:
+            raise AttributeError(f"{self.url} did not return valid Soup.")
+
         start_headline = soup.find("span", class_="mw-headline", id="Large_Monsters")
 
         if not start_headline:
@@ -120,11 +196,15 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
         logger.debug(f"Start headline found: {start_headline}")
 
         start_h2 = start_headline.find_parent("h2")
+        assert isinstance(start_h2, Tag)
         
         scrape_range = []
         for sibling in start_h2.next_siblings:
+            assert isinstance(sibling, NavigableString | Tag), f"Sibling Type: {type(sibling)}"
+
             if sibling.name == "h2":
                 break
+
             if sibling.name is not None:
                 scrape_range.append(sibling)
 
@@ -143,7 +223,10 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
     
         return monster_urls
 
-    def _pack_wiki_object(self, data: dict[str, Any]) -> WikiObject:
+    def _pack_wiki_object(self, data: dict[str, Any]) -> WikiObject | None:
+        if data.get("monster") is None:
+            return
+        
         return WikiObject(
             monster=data["monster"],
             first_appearance=data.get("original"),
@@ -152,7 +235,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
             elements=data.get("elements", []),
             ailments=data.get("status effects", []),
             weaknesses=data.get("weakest to", []),
-            size=data["size"],
+            size=data.get("size"),
             habitats=data.get("habitats", []),
             is_flagship=data.get("Flagship Monsters", False),
             is_subspecies=data.get("Subspecies", False),

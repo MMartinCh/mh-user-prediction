@@ -5,10 +5,12 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from config.config_dataclass import RankingScraperConfig, WebSettings #type:ignore
-from ....src.core.dataclasses import RankingObject #type:ignore
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.helpers import file_cache #type:ignore
+from bs4 import Tag
+
+from config.config_dataclass import RankingScraperConfig, WebSettings 
+from src.core.dataclasses import RankingObject 
+from src.core.interfaces import AbstractWebScraper 
+from src.core.utils import file_cache 
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +23,21 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
             web_settings: WebSettings,
             metadata_path: Path,
     ) -> None:
+        
         super().__init__(
+            cache=config.cache,
+            overwrite=config.overwrite,
             url=config.url,
-            web_settings=web_settings,
+            web_settings=web_settings
         )
 
-        self.cache_path = config.cache
         self.metadata_path = metadata_path
 
     @cached_property
-    @file_cache("self.cache_path")
+    @file_cache(
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
+    )
     def ranking_data(self) -> list[dict[str, Any]]:
         return self.get_full_ranking()
 
@@ -50,7 +57,7 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
         with open(self.metadata_path, "r", encoding="utf-8") as f:
             meta = yaml.safe_load(f)
 
-        top_3_data = meta["monster_metadata"]["top_3"]
+        top_3_data = meta["top_3"]
 
         return [
             {"monster": top_3_data.get(1), "rank": 1},
@@ -60,29 +67,35 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
     
     def _get_4_to_228(self) -> list[dict [str, Any]]:
         top_4_to_bottom = []
-
+        
+        assert self.url is not None
         soup = self.retrieve_soup(self.url)
+
+        if not soup:
+            raise ValueError("Url %s invalid or missing.", self.url)
+
         ranking = soup.find('div', class_= 'ranking')
+        assert isinstance(ranking, Tag)
 
         li_top_20_tags = ranking.find_all('li', class_ = 'no-4-18')
         li_bottom_tags = ranking.find_all('li', class_ = 'no-img')
 
         for li in itertools.chain(li_top_20_tags, li_bottom_tags):
+            assert isinstance(li, Tag)
+
             name_div = li.find('div', class_ = 'name')
             rank_div = li.find('div', class_ = 'no')
 
-            try:
+            if name_div and rank_div:
                 name = name_div.text.strip()
                 rank = int(rank_div.text.split('.')[-1].strip())
 
-                rank_dict = {"monster_name": name, "rank": rank}
+                rank_dict = {"monster": name, "rank": rank}
 
                 top_4_to_bottom.append(rank_dict)
 
-            except AttributeError:
-                logger.warning(f"No text found!")
-
-        logger.info(f"Ranks 4 to 229 successfully scraped! {len(top_4_to_bottom)} items scraped.")
+        logger.info("Scrape Ranking 4-229 completed. %i items scraped.", len(top_4_to_bottom))
+        
         return top_4_to_bottom
 
     def _pack_ranking_object(self, data: dict[str, Any]):

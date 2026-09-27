@@ -1,64 +1,82 @@
 import logging
 import re
 from functools import cached_property
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 import pandas as pd
 
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.dataclasses import QuestObject #type:ignore
-from src.core.helpers import file_cache #type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.interfaces import AbstractQuestScraper
+from src.core.dataclasses import QuestObject
+from src.core.utils import file_cache
 
 logger = logging.getLogger(__name__)
 
-class WorldQuestScraper(AbstractWebScraper[QuestObject]):
+class WorldQuestScraper(AbstractQuestScraper):
     """Partial Scraper Class that scrapes quest data for MH World/ Icebreak.
     To be called via QuestScraper class.
     """
-    GAME = "World/ Iceborne"
-    GEN = 5
+
+    def __init__(
+            self, 
+            config: PartialQuestScraperConfig, 
+            web_settings: WebSettings
+            ) -> None:
+        super().__init__(
+            config=config, 
+            web_settings=web_settings,
+            )
+
+        self.monster_data_path = config.utils["monster_data"]
+        self.stock_data_path = config.utils["stock_data"]
+        self.monster_links_path = config.utils["monster_links"]
+        self.quest_links_path = config.utils["quest_links"]
 
     BASE_URL = r"https://mhw.poedb.tw/eng/monsters/large"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "world"
-    DATA_QUEST_PATH = DATA_PATH / "world_quests.json"
-    DATA_MONSTER_PATH = DATA_PATH / "world_monsters.json"
-    STOCK_QUEST_BASE = DATA_PATH / "stock" / "quest_base.csv"
-    HELPER_MONSTER_LINKS = DATA_PATH / "helper" / "world_monster_links.json"
-    HELPER_QUEST_LINKS = DATA_PATH / "helper" / "world_quest_links.txt"
-
     @cached_property
     def quest_base(self) -> pd.DataFrame:
-        logger.info(f"Load QUEST BASE from disk at: {self.STOCK_QUEST_BASE}")
-        return pd.read_csv(self.STOCK_QUEST_BASE)
+        logger.info(f"Load QUEST BASE from disk at: {self.stock_data_path}")
+        return pd.read_csv(self.stock_data_path)
 
     @cached_property
-    @file_cache("HELPER_MONSTER_LINKS")
-    def monster_links(self) -> Dict[str,str]:
+    @file_cache(
+        path_attr="self.monster_links_path",
+        overwrite_attr="self.overwrite",
+        )
+    def monster_links(self) -> dict[str, str]:
         return self._scrape_monster_links()
 
     @cached_property
-    @file_cache("HELPER_QUEST_LINKS")
-    def quest_links(self) -> List[str]:
+    @file_cache(
+        path_attr="self.quest_links_path",
+        overwrite_attr="self.overwrite",
+        )
+    def quest_links(self) -> list[str]:
         return self._scrape_quest_links_from_monster()
 
     @cached_property
-    @file_cache("DATA_MONSTER_PATH")
-    def monster_data(self) -> Dict[str,Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.monster_data_path",
+        overwrite_attr="self.overwrite",
+        )
+    def monster_data(self) -> dict[str, dict[str, Any]]:
         return {
             monster : self.scrape_monster_data(link)
             for monster, link in self.monster_links.items()
         }
 
     @cached_property
-    @file_cache("DATA_QUEST_PATH")
-    def quest_data(self) -> List[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite",
+    )
+    def quest_data(self) -> list[dict[str, Any]]:
         return [self.scrape_quest_data(link) for link in self.quest_links]
 
-    def scrape(self) -> List[QuestObject]:
+    def scrape(self) -> list[QuestObject]:
         """Extract quest data from Base Url."""
         category_lookup = self.quest_base.set_index("id")["category"].to_dict()
         print(category_lookup)
@@ -81,7 +99,7 @@ class WorldQuestScraper(AbstractWebScraper[QuestObject]):
             for quest in self.quest_data
         ]
 
-    def scrape_quest_data(self, link: str) -> Dict[str,Any]:
+    def scrape_quest_data(self, link: str) -> dict[str, Any]:
         soup = self.retrieve_soup(link)
         table_info = soup.select_one("div.card")
         table_header = table_info.select_one("div.card-header")
@@ -120,7 +138,7 @@ class WorldQuestScraper(AbstractWebScraper[QuestObject]):
             "monsters_and_hp": monsters_and_hp,
             }
 
-    def scrape_monster_data(self, link: str) -> Dict[str,Any]:
+    def scrape_monster_data(self, link: str) -> dict[str, Any]:
         soup = self.retrieve_soup(link)
         table_header = soup.select_one("div.card-header")
         table_body = soup.select_one("table.table.table-striped")
@@ -143,14 +161,14 @@ class WorldQuestScraper(AbstractWebScraper[QuestObject]):
             return None
         return row.find_next(next).text.strip() if text_ else row.find_next(next) #type:ignore
 
-    def _scrape_monster_links(self) -> Dict[str,str]:
+    def _scrape_monster_links(self) -> dict[str, str]:
         soup = self.retrieve_soup(self.BASE_URL)
         return {
             a.text.strip(): urljoin(self.BASE_URL, a.get("href"))
             for a in soup.select("div.list-group.d-flex.flex-row.flex-wrap a.list-group-item[href]")
         }
 
-    def _scrape_quest_links_from_monster(self) -> List[str]:
+    def _scrape_quest_links_from_monster(self) -> list[str]:
         quest_links = set()
         for link in self.monster_links.values():
             soup = self.retrieve_soup(link, polite=False)

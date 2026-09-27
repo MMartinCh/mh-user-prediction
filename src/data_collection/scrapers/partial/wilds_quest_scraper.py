@@ -6,37 +6,50 @@ from typing import Any, Dict, List
 from urllib.parse import urljoin
 
 
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.dataclasses import QuestObject #type:ignore
-from src.core.helpers import file_cache #type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.interfaces import AbstractQuestScraper
+from src.core.dataclasses import QuestObject 
+from src.core.utils import file_cache 
 
 logger = logging.getLogger(__name__)
 
-class WildsQuestScraper(AbstractWebScraper[QuestObject]):
+class WildsQuestScraper(AbstractQuestScraper):
     """Partial Scraper Class that scrapes quest data for MH Wilds from MH Wiki.
     To be called via QuestScraper class.
     """
-    GAME = "Wilds"
-    GEN = 6
+
+    def __init__(
+            self, 
+            config: PartialQuestScraperConfig, 
+            web_settings: WebSettings
+        ) -> None:
+        super().__init__(
+            config=config, 
+            web_settings=web_settings,
+            )
+
+        self.monster_data_path = config.utils["monster_data"]
 
     MHWIKI_URL = r"https://monsterhunterwiki.org/wiki/MHWilds/Quests/"
     KIRANICO_URL = r"https://mhwilds.kiranico.com/data/quests"
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "wilds"
-    QUEST_DATA_PATH = DATA_PATH / "raw_wilds_quests.json"
-    HP_RP_DATA_PATH = DATA_PATH / "hp_and_rp.json" 
-
     @cached_property
-    @file_cache("QUEST_DATA_PATH", overwrite=True)
-    def raw_quest_data(self) -> List[Dict[str,Any]]:
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite",
+    )
+    def raw_quest_data(self) -> list[dict[str, Any]]:
         return self.scrape_raw_quests()
 
     @cached_property
-    @file_cache("HP_RP_DATA_PATH")
-    def hp_rp_data(self) -> Dict[str,Dict[str,int]]:
+    @file_cache(
+        path_attr="self.monster_data_path",
+        overwrite_attr="self.overwrite",
+    )
+    def hp_rp_data(self) -> dict[str, dict[str,int]]:
         return self.scrape_hp_and_rp()
 
-    def scrape(self) -> List[QuestObject]:
+    def scrape(self) -> list[QuestObject]:
 
         # TODO: for missing hp and rp - get base hp and use generic multiplier for lr and hr; same for rp
         quest_items = []
@@ -52,8 +65,8 @@ class WildsQuestScraper(AbstractWebScraper[QuestObject]):
                 QuestObject(
                     title=quest["title"],
                     quest_id=f"mh_wilds_{i}",
-                    game=self.GAME,
-                    generation=self.GEN,
+                    game=self.game,
+                    generation=self.generation,
                     rank=quest["rank"],
                     level=quest["level"],
                     is_assignment=quest["is_assignment"],

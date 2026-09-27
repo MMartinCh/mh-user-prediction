@@ -1,10 +1,9 @@
 import logging
 import re
 from functools import cached_property
-from pathlib import Path
 from typing import Any
 
-from bs4 import BeautifulSoup, soup, Tag
+from bs4 import BeautifulSoup, Tag
 from playwright.sync_api import Browser, sync_playwright
 
 from config.config_dataclass import PartialQuestScraperConfig, WebSettings
@@ -19,9 +18,9 @@ class FourQuestScraper(AbstractQuestScraper):
     To be called via QuestScraper class."""
 
     def __init__(
-            self,
-            config: PartialQuestScraperConfig,
-            web_settings: WebSettings,
+        self,
+        config: PartialQuestScraperConfig,
+        web_settings: WebSettings,
     ) -> None:
         super().__init__(
             config=config,

@@ -2,11 +2,11 @@ import logging
 from functools import cached_property
 from typing import Any, Optional
 
-from config.config_dataclass import QuestScrapersConfig, WebSettings #type:ignore
-from core.utils.file_cache_module import file_cache #type:ignore
-from src.core.dataclasses import QuestObject #type:ignore
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.data_collection.scrapers.partial import ( #type:ignore
+from config.config_dataclass import QuestScrapersConfig, WebSettings 
+from src.core.utils.file_cache_module import file_cache 
+from src.core.dataclasses import QuestObject 
+from src.core.interfaces import AbstractWebScraper
+from src.data_collection.scrapers.partial import ( 
     TriQuestScraper,
     FourQuestScraper,
     FreedomQuestScraper,
@@ -35,31 +35,34 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
         wilds_quest_scraper: Optional[WildsQuestScraper] = None, 
         world_quest_scraper: Optional[WorldQuestScraper] = None,
     ) -> None:
-        super().__init__(web_settings=web_settings)
+        
+        super().__init__(
+            cache=config.cache,
+            overwrite=config.overwrite,
+            web_settings=web_settings,
+        )
 
-        self.cache_path = config.cache
-
-        self.scrapers: list[AbstractWebScraper[QuestObject]] = [
-            tri_quest_scraper or TriQuestScraper(),
-            four_quest_scraper or FourQuestScraper(),
-            freedom_quest_scraper or FreedomQuestScraper(),
-            fu_quest_scraper or FUQuestScraper(),
-            generations_quest_scraper or GenerationsQuestScraper(),
-            rise_quest_scraper or RiseQuestScraper(),
-            world_quest_scraper or WorldQuestScraper(),
-            wilds_quest_scraper or WildsQuestScraper(),
+        self.scrapers = [
+            tri_quest_scraper,
+            four_quest_scraper,
+            freedom_quest_scraper,
+            fu_quest_scraper,
+            generations_quest_scraper,
+            rise_quest_scraper,
+            world_quest_scraper,
+            wilds_quest_scraper,
         ]
 
     @cached_property
-    @file_cache("self.cache_path")
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite",
+    )
     def quest_data(self) -> list[QuestObject]:
         return self._call_partial_scrapers()
 
     def scrape(self) -> list[QuestObject]:
-        return [
-            self._pack_quest_object(data)
-            for data in self.quest_data
-        ]
+        return [data for data in self.quest_data]
 
     def _call_partial_scrapers(self) -> list[QuestObject]:
         """Call all partial quest scrapers and return as list of QuestObjects."""

@@ -2,64 +2,78 @@ import json
 import logging
 import re
 from functools import cached_property
-from pathlib import Path
 from typing import Any, Dict, List, Set
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
-import pandas as pd
-
-from src.core.interfaces import AbstractWebScraper #type:ignore
-from src.core.helpers import file_cache #type:ignore
-from src.core.dataclasses import QuestObject # type:ignore
+from config.config_dataclass import PartialQuestScraperConfig, WebSettings
+from src.core.interfaces import AbstractQuestScraper
+from src.core.utils import file_cache 
+from src.core.dataclasses import QuestObject
 
 logger = logging.getLogger(__name__)
 
-class RiseQuestScraper(AbstractWebScraper[QuestObject]):
+class RiseQuestScraper(AbstractQuestScraper):
     """Partial Scraper Class that scrapes quest data for MH Rise/ Sunbreak.
     To be called via QuestScraper class.
     """
-    def __init__(self, overwrite: bool = False, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.overwrite = overwrite
 
-    GAME = "Rise/ Sunbreak"
-    GEN = 5
+    def __init__(
+            self, 
+            config: PartialQuestScraperConfig, 
+            web_settings: WebSettings
+            ) -> None:
+        super().__init__(
+            config=config, 
+            web_settings=web_settings,
+            )
 
-    BASE_URL = r"https://mhrise.mhrice.info/monster.html"
-    KEY_QUEST_URL = r"https://monsterhunterrise.wiki.fextralife.com/Hub+Quests"
+        self.monster_data_path = config.utils["monster_data"]
+        self.monster_links_path = config.utils["monster_links"]
+        self.quest_links_path = config.utils["quest_links"]
+        self.stock_data_path = config.utils["stock_data"]
 
-    DATA_PATH = AbstractWebScraper.DATA_PATH / "subsets" / "rise"
-    MONSTER_DATA_PATH = DATA_PATH / "monster_page_data.json"
-    QUEST_DATA_PATH = DATA_PATH / "raw_quest_data.json"
-    KEY_QUEST_PATH =  DATA_PATH / "helper" / "key_quests.txt"
-    MONSTER_LINK_PATH = DATA_PATH / "helper" / "monster_links.txt"
-    QUEST_LINK_PATH = DATA_PATH / "helper" / "quest_links.txt"
+    BASE_URL = "https://mhrise.mhrice.info/monster.html"
+    KEY_QUEST_URL = "https://monsterhunterrise.wiki.fextralife.com/Hub+Quests"
 
     @cached_property
-    @file_cache("MONSTER_LINK_PATH")
+    @file_cache(
+        path_attr="self.cache_path",
+        overwrite_attr="self.overwrite"
+    )
+    def quest_data(self) -> list[dict[str,Any]]:
+        return self.scrape_quest_data()
+
+    @cached_property
+    @file_cache(
+        path_attr="",
+        overwrite_attr="self.overwrite",
+    )
     def monster_links(self) -> List[str]:
         return self._scrape_monster_links()
 
     @cached_property
-    @file_cache("QUEST_LINK_PATH")
+    @file_cache(
+        path_attr="self.quest_links_path",
+        overwrite_attr="self.overwrite",
+    )
     def quest_links(self) -> Set[str]:
         return set(self._scrape_quest_links())
 
     @cached_property
-    @file_cache("KEY_QUEST_PATH")
-    def key_quests(self) -> Set[str]:
+    @file_cache(
+        path_attr="self.stock_data_path",
+        overwrite_attr="self.overwrite",
+        )
+    def key_quests(self) -> set[str]:
         return set(self._scrape_key_quests())
 
     @cached_property
-    @file_cache("MONSTER_DATA_PATH")
-    def monster_page_data(self) -> Dict[str,Dict[str,float]]:
+    @file_cache(
+        path_attr="self.monster_data_path",
+        overwrite_attr="self.overwrite",
+    )
+    def monster_page_data(self) -> dict[str, dict[str, int]]:
         return self.scrape_monster_page_data()
-
-    @cached_property
-    @file_cache("QUEST_DATA_PATH")
-    def quest_data(self) -> List[Dict[str,Any]]:
-        return self.scrape_quest_data()
 
     def scrape(self) -> List[QuestObject]:
         """Get all Quest info for MH Rise/ Sunbreak and return list of structured quest data."""
@@ -67,8 +81,8 @@ class RiseQuestScraper(AbstractWebScraper[QuestObject]):
             QuestObject(
                 title=quest["title"],
                 quest_id=quest["id"],
-                game=self.GAME,
-                generation=self.GEN,
+                game=self.game,
+                generation=self.generation,
                 rank=quest["rank"],
                 level=quest["level"],
                 is_assignment=quest["is_assignment"],
@@ -81,9 +95,9 @@ class RiseQuestScraper(AbstractWebScraper[QuestObject]):
             for quest in self.quest_data
             ]
 
-    def scrape_monster_page_data(self) -> Dict[str,Dict[str,float]]:
+    def scrape_monster_page_data(self) -> dict[str, dict[str, int]]:
             """Scrape all data from all data from Monster pages. Save to csv and return df."""
-            logger.info(f"No MONSTER PAGE DATA found at {self.MONSTER_DATA_PATH}. Start scraping from {self.BASE_URL}")
+            logger.info(f"No MONSTER PAGE DATA found at {self.monster_data_path}. Start scraping from {self.BASE_URL}")
 
             monster_page_data = {}
             for link in self.monster_links:
@@ -130,7 +144,7 @@ class RiseQuestScraper(AbstractWebScraper[QuestObject]):
 
         return quest_data
 
-    def _extract_quest_data(self, quest: str) -> Dict[str,Any] | None:
+    def _extract_quest_data(self, quest: str) -> dict[str, Any] | None:
         quest_soup = self.retrieve_soup(quest)
 
         quest_id_match = re.search(r"(\d+).html", quest)
@@ -178,15 +192,15 @@ class RiseQuestScraper(AbstractWebScraper[QuestObject]):
             "is_village_quest": quest_rank == "VI"
             }
 
-    def _calculate_target_hp(self, quest_data: Dict[str,Any]) -> Dict[str,float]:
+    def _calculate_target_hp(self, quest_data: dict[str, Any]) -> dict[str, int]:
         """Read target hp scaling from table, multiply with base hp and return dict of targets and their quest hp."""
-        targets_hp_scaling: Dict[str,float] = json.loads(quest_data.get("targets_hp_scaling", "{}"))
+        targets_hp_scaling: dict[str, int] = json.loads(quest_data.get("targets_hp_scaling", "{}"))
         quest_rank = quest_data.get("quest_rank", "")
         quest_rank = "LR" if quest_rank != "MR" else quest_rank
 
         targets_final_hp = {}
         for target, scaling in targets_hp_scaling.items():
-            target_data: Dict[str,float] = self.monster_page_data.get(target, {})
+            target_data: Dict[str, int] = self.monster_page_data.get(target, {})
             target_base = target_data.get(f"{quest_rank.lower()}_base_hp", None)
             if not target_base:
                 continue

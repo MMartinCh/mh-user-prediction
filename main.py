@@ -1,7 +1,8 @@
 import logging
 import sys
+from pathlib import Path
 
-from src.core.utils.load_config import load_config
+from config.config_loader import ConfigLoader
 from src.pipeline import build_pipeline
 
 logging.basicConfig(
@@ -11,8 +12,11 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
+    BASE_PATH = Path(__file__).resolve().parent
+    config_path = BASE_PATH / "config" / "config.yaml"
     
-    config = load_config()
+    config_loader = ConfigLoader(path=config_path)
+    config = config_loader.load()
 
     pipeline = build_pipeline(config)
 

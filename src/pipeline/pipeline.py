@@ -5,11 +5,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import root_mean_squared_error, r2_score
 
-from ...src.core.dataclasses import RankingObject, QuestObject, WikiObject
-from ...src.core.interfaces import Model
-from ...src.data_collection.scrapers import QuestScraper, WikiScraper, RankingScraper
-from ...src.data_collection.repositories import LocalCsvRepository
-from ...src.features import CrossGameNormalizer, FeatureAssembler, QuestFeatureBuilder
+from src.core.dataclasses import RankingObject, QuestObject, WikiObject
+from src.core.interfaces import Model
+from src.data_collection.scrapers import QuestScraper, WikiScraper, RankingScraper
+from src.data_collection.repositories import LocalCsvRepository
+from src.features import CrossGameNormalizer, FeatureAssembler, QuestFeatureBuilder
 
 class Pipeline():
     """Class orchestrating the full pipeline, from scraping to model training."""

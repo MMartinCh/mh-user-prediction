@@ -1,15 +1,15 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 
-from ...src.data_collection.repositories import LocalCsvRepository
-from ...src.data_collection.scrapers import QuestScraper, WikiScraper, RankingScraper
-from ...src.features import FeatureAssembler, CrossGameNormalizer, QuestFeatureBuilder
-from ...config.config_dataclass import Config
-from ..core.interfaces import Model
-from .pipeline import Pipeline
+from src.data_collection.repositories import LocalCsvRepository
+from src.data_collection.scrapers import QuestScraper, WikiScraper, RankingScraper
+from src.features import FeatureAssembler, CrossGameNormalizer, QuestFeatureBuilder
+from config.config_dataclass import Config
+from core.interfaces import Model
+from pipeline import Pipeline
 
 def build_pipeline(config: Config) -> Pipeline:
-    """Accept Config and return Pipeline object of specified settings."""
+    """"Build complete Pipeline from Config."""
 
     return Pipeline(
         quest_scraper=_build_quest_scraper(config),

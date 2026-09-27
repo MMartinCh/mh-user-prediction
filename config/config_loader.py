@@ -17,7 +17,7 @@ class ConfigLoader:
 
     def __init__(self, path: Path) -> None:
         self.config_path = path
-        self.base_path = Path(__file__).resolve().parent
+        self.base_path = Path(__file__).resolve().parent.parent
 
     def load(self) -> Config:
         with open(self.config_path, "r", encoding="utf-8") as f:
@@ -58,7 +58,10 @@ class ConfigLoader:
                 url=data["wiki"]["url"],
                 cache=self.base_path / data["wiki"]["cache"],
                 overwrite=data["wiki"]["overwrite"],
-                utils=data["wiki"]["utils"]
+                utils={
+                    key: self.base_path / path 
+                    for key, path in data["wiki"]["utils"].items()
+                }
             ),
             quest=self._load_quest_scraper_config(data["quest"])
         )

@@ -20,44 +20,44 @@ scraper: # Scraper classes, mining data or loading from disk
   # settings for all main scrapers Ranking, Wiki and Quest
   ranking:
     url: https://www.monsterhunter.com/20th/en/vote-monster/result/
-    cache: /data/subsets/ranking_data.csv
+    cache: data/subsets/ranking_data.json
     overwrite: False # (bool) wether to scrape again and overwrite, when data already cached
 
   wiki: 
     url: https://monsterhunterwiki.org/wiki/Monster_List
-    cache: /data/subsets/wiki_data.csv
+    cache: data/subsets/wiki_data.json
     overwrite: False
     utils:
-      monster_links: /data/utils/wiki_monster_links.txt
+      monster_links: data/utils/wiki_monster_links.txt
 
   quest:
-    cache: /data/subsets/quest_data.csv
+    cache: data/subsets/quest_data.json
     overwrite: False
 
     partial: # settings for game-wise quest-scrapers
       freedom:
         game: Monster Hunter Freedom
         generation: 1
-        cache: /data/partial/freedom_quest_data.json
+        cache: data/partial/freedom_quest_data.json
         overwrite: False
         utils: 
-          monster_list: /data/utils/mhf_monster_list.txt
+          monster_list: data/utils/mhf_monster_list.txt
 
       freedom_unite:
         game: Monster Hunter Freedom Unite
         generation: 2
-        cache: /data/partial/freedom_unite_quest_data.json
+        cache: data/partial/freedom_unite_quest_data.json
         overwrite: False
         utils: 
-          stock_data: /data/utils/freed_unite_stock_data.json
+          stock_data: data/utils/freed_unite_stock_data.json
 
       tri:
         game: Monster Hunter Tri Ultimate
         generation: 3
-        cache: /data/partial/tri_quest_data.json
+        cache: data/partial/tri_quest_data.json
         overwrite: False
         utils: 
-          quest_links: /data/utils/tri_quest_links.txt
+          quest_links: data/utils/tri_quest_links.txt
 
       portable: # currently not implemented as scraper
         game: Monster Hunter Portable 3rd
@@ -69,57 +69,57 @@ scraper: # Scraper classes, mining data or loading from disk
       four:
         game: Monster Hunter Four Ultimate
         generation: 4
-        cache: /data/partial/four_quest_data.json
+        cache: data/partial/four_quest_data.json
         overwrite: False
         utils:
-          monster_data: /data/utils/four_monster_data.json
-          monster_links: /data/utils/four_monster_links.txt
-          quest_links: /data/utils/four_quest_links.txt
+          monster_data: data/utils/four_monster_data.json
+          monster_links: data/utils/four_monster_links.txt
+          quest_links: data/utils/four_quest_links.txt
 
       generations:
         game: Monster Hunter Generations Ultimate
         generation: 4
-        cache: /data/partial/generations_quest_data.json
+        cache: data/partial/generations_quest_data.json
         overwrite: False
         utils: 
-          monster_data: /data/utils/generations_monster_data.json
-          monster_links: /data/utils/generations_monster_links.txt
-          quest_links: /data/utils/generations_quest_links.txt
+          monster_data: data/utils/generations_monster_data.json
+          monster_links: data/utils/generations_monster_links.txt
+          quest_links: data/utils/generations_quest_links.txt
 
       world: 
         game: Monster Hunter World/ Iceborne
         generation: 5
-        cache: /data/partial/world_quest_data.json
+        cache: data/partial/world_quest_data.json
         overwrite: False
         utils:
-          monster_data: /data/utils/world_monster_data.json
-          stock_data: /data/utils/world_stock_data.json
-          monster_links: /data/utils/world_monster_links.json
-          quest_links: /data/utils/world_quest_links.txt
+          monster_data: data/utils/world_monster_data.json
+          stock_data: data/utils/world_stock_data.json
+          monster_links: data/utils/world_monster_links.json
+          quest_links: data/utils/world_quest_links.txt
 
       rise:
         game: Monster Hunter Rise/ Sunbreak
         generation: 5
-        cache: /data/partial/rise_quest_data.json
+        cache: data/partial/rise_quest_data.json
         overwrite: False
         utils: 
-          monster_data: /data/utils/rise_monster_data.json
-          key_quests: /data/utils/rise_key_quests.txt
-          monster_links: /data/utils/rise_monster_links.txt
-          quest_links: /data/utils/rise_quest_links.txt
+          monster_data: data/utils/rise_monster_data.json
+          key_quests: data/utils/rise_key_quests.txt
+          monster_links: data/utils/rise_monster_links.txt
+          quest_links: data/utils/rise_quest_links.txt
           
       wilds:
         game: Monster Hunter Wilds
         generation: 6
-        cache: /data/partial/wilds_quest_data.json
+        cache: data/partial/wilds_quest_data.json
         overwrite: False
         utils: 
-          monster_data: /data/utils/wilds_lookup.json
+          monster_data: data/utils/wilds_lookup.json
 
 # PATHS
 # ---------------------
 paths:
-  data_path: /data/
-  metadata_path: /data/utils/game_metadata.yaml/
+  data_path: data/
+  metadata_path: data/utils/metadata.yaml/
   
   

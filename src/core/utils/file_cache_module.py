@@ -18,6 +18,7 @@ def file_cache(
         def wrapper(self):
             path: Path = getattr(self, path_attr)
             overwrite: bool = getattr(self, overwrite_attr, False)
+            
             data_name = path.stem.upper()
             file_ending = path.suffix
 

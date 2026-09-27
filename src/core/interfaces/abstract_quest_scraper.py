@@ -11,10 +11,13 @@ class AbstractQuestScraper(AbstractWebScraper[QuestObject]):
         config: PartialQuestScraperConfig,
         web_settings: WebSettings,
     ) -> None:
-        super().__init__(web_settings=web_settings)
+        
+        super().__init__(
+            cache=config.cache,
+            overwrite=config.overwrite,
+            web_settings=web_settings,
+        )
 
         self.game = config.game
         self.generation = config.generation
-        self.cache_path = config.cache
-        self.overwrite = config.overwrite
         self.utils = config.utils
