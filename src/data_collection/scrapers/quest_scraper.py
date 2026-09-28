@@ -5,17 +5,7 @@ from typing import Any, Optional
 from config.config_dataclass import QuestScrapersConfig, WebSettings 
 from src.core.utils.file_cache_module import file_cache 
 from src.core.dataclasses import QuestObject 
-from src.core.interfaces import AbstractWebScraper
-from src.data_collection.scrapers.partial import ( 
-    TriQuestScraper,
-    FourQuestScraper,
-    FreedomQuestScraper,
-    FUQuestScraper,
-    GenerationsQuestScraper,
-    RiseQuestScraper,
-    WildsQuestScraper,
-    WorldQuestScraper,
-)
+from src.core.interfaces import AbstractWebScraper, AbstractQuestScraper 
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +16,7 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
         self,
         config: QuestScrapersConfig,
         web_settings: WebSettings,
-        tri_quest_scraper: Optional[TriQuestScraper] = None,
-        four_quest_scraper: Optional[FourQuestScraper] = None,
-        freedom_quest_scraper: Optional[FreedomQuestScraper] = None,
-        fu_quest_scraper: Optional[FUQuestScraper] = None,
-        generations_quest_scraper: Optional[GenerationsQuestScraper] = None,
-        rise_quest_scraper: Optional[RiseQuestScraper] = None, 
-        wilds_quest_scraper: Optional[WildsQuestScraper] = None, 
-        world_quest_scraper: Optional[WorldQuestScraper] = None,
+        partial_quest_scrapers: list[AbstractQuestScraper],
     ) -> None:
         
         super().__init__(
@@ -42,21 +25,12 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
             web_settings=web_settings,
         )
 
-        self.scrapers = [
-            tri_quest_scraper,
-            four_quest_scraper,
-            freedom_quest_scraper,
-            fu_quest_scraper,
-            generations_quest_scraper,
-            rise_quest_scraper,
-            world_quest_scraper,
-            wilds_quest_scraper,
-        ]
+        self.scrapers = partial_quest_scrapers
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
     )
     def quest_data(self) -> list[QuestObject]:
         return self._call_partial_scrapers()
@@ -66,11 +40,16 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
 
     def _call_partial_scrapers(self) -> list[QuestObject]:
         """Call all partial quest scrapers and return as list of QuestObjects."""
-        return [
-            quest 
-            for scraper in self.scrapers 
-            for quest in scraper.scrape()
-        ]
+        
+        data = []
+        for scraper in self.scrapers:
+            logger.info("Start Quest scraping for %s\n", scraper.game)
+
+            data.extend(scraper.scrape())
+
+            logger.info("Quest scraping completed for %s\n", scraper.game)
+
+        return data
 
     def _unpack_quest_object(self, data: dict[str, Any]) -> QuestObject:
         return QuestObject(

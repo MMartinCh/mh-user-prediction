@@ -1,7 +1,7 @@
-from .factory import build_pipeline
+from .factory import PipelineFactory
 from .pipeline import Pipeline
 
-__all__ = [
-    "build_pipeline", 
+__all__ = [ 
     "Pipeline",
+    "PipelineFactory",
 ]

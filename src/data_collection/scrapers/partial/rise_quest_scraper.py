@@ -30,47 +30,47 @@ class RiseQuestScraper(AbstractQuestScraper):
         self.monster_data_path = config.utils["monster_data"]
         self.monster_links_path = config.utils["monster_links"]
         self.quest_links_path = config.utils["quest_links"]
-        self.stock_data_path = config.utils["stock_data"]
+        self.key_quest_path = config.utils["key_quests"]
 
     BASE_URL = "https://mhrise.mhrice.info/monster.html"
     KEY_QUEST_URL = "https://monsterhunterrise.wiki.fextralife.com/Hub+Quests"
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite"
+        path_attr="cache_path",
+        overwrite_attr="overwrite"
     )
     def quest_data(self) -> list[dict[str,Any]]:
         return self.scrape_quest_data()
 
     @cached_property
     @file_cache(
-        path_attr="",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_links_path",
+        overwrite_attr="overwrite",
     )
     def monster_links(self) -> List[str]:
         return self._scrape_monster_links()
 
     @cached_property
     @file_cache(
-        path_attr="self.quest_links_path",
-        overwrite_attr="self.overwrite",
+        path_attr="quest_links_path",
+        overwrite_attr="overwrite",
     )
     def quest_links(self) -> Set[str]:
         return set(self._scrape_quest_links())
 
     @cached_property
     @file_cache(
-        path_attr="self.stock_data_path",
-        overwrite_attr="self.overwrite",
+        path_attr="key_quest_path",
+        overwrite_attr="overwrite",
         )
     def key_quests(self) -> set[str]:
         return set(self._scrape_key_quests())
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_data_path",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_data_path",
+        overwrite_attr="overwrite",
     )
     def monster_page_data(self) -> dict[str, dict[str, int]]:
         return self.scrape_monster_page_data()

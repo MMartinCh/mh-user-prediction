@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from src.core import RankingScraperItem, MHWikiItem
+from src.core.dataclasses import RankingObject, WikiObject
 
 logger = logging.getLogger(__name__)
 
@@ -8,8 +8,8 @@ class DataMerger():
     """Merges data from multiple DTOs into combined DF."""
 
     def merge(self, 
-              ranking_data: list[RankingScraperItem] = None, 
-              wiki_data: list[MHWikiItem] = None,
+              ranking_data: list[RankingObject], 
+              wiki_data: list[WikiObject],
               ) -> pd.DataFrame:
         
         df_ranking = pd.DataFrame(ranking_data)

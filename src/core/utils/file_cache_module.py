@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def file_cache(
         path_attr: str, 
-        overwrite_attr: str,
+        overwrite_attr: str | None = None,
         dataclass_cls: type | None = None, 
         index_col: str | None = None,
         ):
@@ -17,14 +17,16 @@ def file_cache(
         @wraps(scrape_func)
         def wrapper(self):
             path: Path = getattr(self, path_attr)
-            overwrite: bool = getattr(self, overwrite_attr, False)
+
+            overwrite = False
+            if overwrite_attr:
+                overwrite: bool = getattr(self, overwrite_attr, False)
             
             data_name = path.stem.upper()
             file_ending = path.suffix
 
-            do_overwrite = overwrite if overwrite is not None else getattr(self, "overwrite", False)
-            if not path.exists() or do_overwrite:
-                if do_overwrite:
+            if not path.exists() or overwrite:
+                if overwrite:
                     logger.info(f"Overwriting {data_name}...")
                 elif not path.exists():
                     logger.info(f"{data_name} not found at {path}! Start scraping...")

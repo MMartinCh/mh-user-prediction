@@ -70,7 +70,7 @@ scraper: # Scraper classes, mining data or loading from disk
         game: Monster Hunter Four Ultimate
         generation: 4
         cache: data/partial/four_quest_data.json
-        overwrite: False
+        overwrite: True
         utils:
           monster_data: data/utils/four_monster_data.json
           monster_links: data/utils/four_monster_links.txt

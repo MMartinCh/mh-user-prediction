@@ -36,10 +36,10 @@ class FourQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path", 
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path", 
+        overwrite_attr="overwrite",
     )
-    def quest_data(self) -> list[dict[str,Any]]:
+    def quest_data(self) -> list[dict[str, Any]]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             _quest_data = [
@@ -51,8 +51,8 @@ class FourQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_data_path",
-        overwrite_attr="self.overwrite"
+        path_attr="monster_data_path",
+        # overwrite_attr="overwrite"
     )
     def monster_data(self) -> list[dict[str, Any]]:
         with sync_playwright() as p:
@@ -66,21 +66,22 @@ class FourQuestScraper(AbstractQuestScraper):
     
     @cached_property
     @file_cache(
-        path_attr="self.quest_link_path",
-        overwrite_attr="self.overwrite",
+        path_attr="quest_links_path",
+        overwrite_attr="overwrite",
     )
     def quest_links(self) -> list[str]:
         return self._scrape_links("quest")
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_link_path",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_links_path",
+        # overwrite_attr="overwrite",
     )
     def monster_links(self) -> list[str]:
         return self._scrape_links("monster")
 
     def scrape(self) -> list[QuestObject]:
+
         hp_lookup = {
             monster: hp
             for monster_dict in self.monster_data
@@ -230,7 +231,7 @@ class FourQuestScraper(AbstractQuestScraper):
         return rank
 
     def _scrape_links(self, type_: str) -> list[str]:
-        if not type_.lower() in ["monster", "quest"]:
+        if type_.lower() not in ["monster", "quest"]:
             raise AttributeError(f"Type {type_} no suitable category. Try MONSTER or QUEST...")
 
         url = getattr(self, f"{type_.upper()}_URL")
@@ -242,10 +243,9 @@ class FourQuestScraper(AbstractQuestScraper):
             for row in soup.find_all(
                     "a", 
                     string=True, 
-                    href=re.compile(rf"^https://kiranico.com/en/mh4u/{type_.lower()}/\d+/.*")
+                    href=re.compile(rf"^https://kiranico\.com/en/mh4u/{type_.lower()}/[^/]+$")
                     )
                     if isinstance(row, Tag) 
                     and (link := row.get("href"))
                     and isinstance(link, str)
         ]
-

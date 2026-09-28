@@ -29,8 +29,8 @@ class FUQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
         )
     def cached_quest_data(self) -> list[dict[str, Any]]:
         return self.fetch_quest_data()

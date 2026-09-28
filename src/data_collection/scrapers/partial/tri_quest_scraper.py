@@ -37,8 +37,8 @@ class TriQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
     )
     def quest_data(self) -> list[dict[str, Any]]:
         with sync_playwright() as p:
@@ -56,8 +56,8 @@ class TriQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_links_path", 
-        overwrite_attr="self.overwrite",
+        path_attr="cache_links_path", 
+        overwrite_attr="overwrite",
     )
     def quest_links(self) -> list[str]:
         return self._scrape_quest_links()

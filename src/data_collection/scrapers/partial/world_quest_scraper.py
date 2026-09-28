@@ -43,24 +43,24 @@ class WorldQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_links_path",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_links_path",
+        overwrite_attr="overwrite",
         )
     def monster_links(self) -> dict[str, str]:
         return self._scrape_monster_links()
 
     @cached_property
     @file_cache(
-        path_attr="self.quest_links_path",
-        overwrite_attr="self.overwrite",
+        path_attr="quest_links_path",
+        overwrite_attr="overwrite",
         )
     def quest_links(self) -> list[str]:
         return self._scrape_quest_links_from_monster()
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_data_path",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_data_path",
+        overwrite_attr="overwrite",
         )
     def monster_data(self) -> dict[str, dict[str, Any]]:
         return {
@@ -70,8 +70,8 @@ class WorldQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
     )
     def quest_data(self) -> list[dict[str, Any]]:
         return [self.scrape_quest_data(link) for link in self.quest_links]
@@ -85,8 +85,8 @@ class WorldQuestScraper(AbstractQuestScraper):
             QuestObject(
                 title = quest["title"],
                 quest_id = quest["id_"],
-                game=self.GAME,
-                generation=self.GEN,
+                game=self.game,
+                generation=self.generation,
                 rank = quest["rank"],
                 level = quest["level"],
                 is_assignment = category_lookup.get(int(quest["id_"])) == "assigned",

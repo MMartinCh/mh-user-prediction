@@ -35,16 +35,16 @@ class WildsQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="self.cache_path",
-        overwrite_attr="self.overwrite",
+        path_attr="cache_path",
+        overwrite_attr="overwrite",
     )
     def raw_quest_data(self) -> list[dict[str, Any]]:
         return self.scrape_raw_quests()
 
     @cached_property
     @file_cache(
-        path_attr="self.monster_data_path",
-        overwrite_attr="self.overwrite",
+        path_attr="monster_data_path",
+        overwrite_attr="overwrite",
     )
     def hp_rp_data(self) -> dict[str, dict[str,int]]:
         return self.scrape_hp_and_rp()
