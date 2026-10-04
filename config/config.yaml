@@ -13,7 +13,7 @@ model: # ML prediction model to be trained
 scraper: # Scraper classes, mining data or loading from disk
 
   web_settings: # scraper settings for web retrieval, applied to all scrapers
-    polite_delay: 0.5 # (float) wether to sleep for specified delay when loading page
+    polite_delay: 0.0 # (float) wether to sleep for specified delay when loading page
     timeout: 100.0 # (float) time to wait for request
     user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" # (str) 
 
@@ -32,7 +32,7 @@ scraper: # Scraper classes, mining data or loading from disk
 
   quest:
     cache: data/subsets/quest_data.json
-    overwrite: False
+    overwrite: True
 
     partial: # settings for game-wise quest-scrapers
       freedom:
@@ -112,7 +112,7 @@ scraper: # Scraper classes, mining data or loading from disk
         game: Monster Hunter Wilds
         generation: 6
         cache: data/partial/wilds_quest_data.json
-        overwrite: False
+        overwrite: True
         utils: 
           monster_data: data/utils/wilds_lookup.json
 
