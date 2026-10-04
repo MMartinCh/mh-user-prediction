@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from data.metadata.metadata_class import Metadata
+
 @dataclass(frozen=True)
 class ModelConfig:
     type: str
@@ -62,3 +64,4 @@ class Config:
     model: ModelConfig
     scraper: ScraperConfig
     paths: PathsConfig
+    metadata: Metadata

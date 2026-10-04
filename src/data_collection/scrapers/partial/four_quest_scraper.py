@@ -130,7 +130,7 @@ class FourQuestScraper(AbstractQuestScraper):
         soup = self.retrieve_rendered_soup(browser, link)
 
         div = soup.select_one("div.col-sm-3")
-        assert isinstance(div, BeautifulSoup)
+        assert isinstance(div, Tag)
 
         h1_tag = soup.find("h1")
         assert isinstance(h1_tag, Tag)
@@ -177,7 +177,7 @@ class FourQuestScraper(AbstractQuestScraper):
             "points": points,
         }
 
-    def scrape_monster(self, browser:Browser, link:str) -> dict[str,Any]:
+    def scrape_monster(self, browser: Browser, link: str) -> dict[str,Any]:
         soup = self.retrieve_rendered_soup(browser, link)
         h1_tag = soup.find("h1")
 
@@ -208,7 +208,7 @@ class FourQuestScraper(AbstractQuestScraper):
             "max_size": float(self._get_quest_attribute(hp_table, "King", "0").replace("<","").replace(">","")), #type:ignore
         }
 
-    def _get_quest_attribute(self, soup: BeautifulSoup, attribute: str, default: Any = None) -> Any | None:
+    def _get_quest_attribute(self, soup: Tag, attribute: str, default: Any = None) -> Any | None:
         col = soup.find("td", string=re.compile(attribute))
         if col:
             td = col.find_next("td")
@@ -231,7 +231,12 @@ class FourQuestScraper(AbstractQuestScraper):
         return rank
 
     def _scrape_links(self, type_: str) -> list[str]:
-        if type_.lower() not in ["monster", "quest"]:
+
+        if type_.lower() == "monster":
+            regex = r"^https://kiranico\.com/en/mh4u/monster/[^/]+$"
+        elif type_.lower() == "quest":
+            regex = r"^https://kiranico\.com/en/mh4u/quest/[^/]+/\d+/[^/]+$"
+        else:
             raise AttributeError(f"Type {type_} no suitable category. Try MONSTER or QUEST...")
 
         url = getattr(self, f"{type_.upper()}_URL")
@@ -243,7 +248,7 @@ class FourQuestScraper(AbstractQuestScraper):
             for row in soup.find_all(
                     "a", 
                     string=True, 
-                    href=re.compile(rf"^https://kiranico\.com/en/mh4u/{type_.lower()}/[^/]+$")
+                    href=re.compile(regex)
                     )
                     if isinstance(row, Tag) 
                     and (link := row.get("href"))

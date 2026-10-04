@@ -22,7 +22,11 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Python Notebooks
 try_out.py
+try_out.ipynb
+quest_data_processing.ipynb
 
 # Virtual Environments
 .venv/

@@ -31,6 +31,7 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
     @file_cache(
         path_attr="cache_path",
         overwrite_attr="overwrite",
+        dataclass_cls=QuestObject,
     )
     def quest_data(self) -> list[QuestObject]:
         return self._call_partial_scrapers()
@@ -43,7 +44,7 @@ class QuestScraper(AbstractWebScraper[QuestObject]):
         
         data = []
         for scraper in self.scrapers:
-            logger.info("Start Quest scraping for %s\n", scraper.game)
+            logger.info("Start Quest scraping for %s", scraper.game)
 
             data.extend(scraper.scrape())
 

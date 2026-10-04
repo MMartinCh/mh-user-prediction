@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from config.config_loader import ConfigLoader
-from src.pipeline import build_pipeline
+from src.pipeline import PipelineFactory
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     config_loader = ConfigLoader(path=config_path)
     config = config_loader.load()
 
-    pipeline = build_pipeline(config)
+    pipeline = PipelineFactory(config)
 
     results = pipeline.run()
 

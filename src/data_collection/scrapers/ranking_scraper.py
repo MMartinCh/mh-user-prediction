@@ -8,6 +8,7 @@ from typing import Any
 from bs4 import Tag
 
 from config.config_dataclass import RankingScraperConfig, WebSettings 
+from data.metadata.metadata_class import Metadata
 from src.core.dataclasses import RankingObject 
 from src.core.interfaces import AbstractWebScraper 
 from src.core.utils import file_cache 
@@ -21,7 +22,7 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
             self,
             config: RankingScraperConfig,
             web_settings: WebSettings,
-            metadata_path: Path,
+            metadata: Metadata,
     ) -> None:
         
         super().__init__(
@@ -31,7 +32,7 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
             web_settings=web_settings
         )
 
-        self.metadata_path = metadata_path
+        self.metadata = metadata
 
     @cached_property
     @file_cache(
@@ -54,15 +55,12 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
         return rankings
     
     def _get_top_3(self) -> list[dict[str, Any]]:
-        with open(self.metadata_path, "r", encoding="utf-8") as f:
-            meta = yaml.safe_load(f)
-
-        top_3_data = meta["top_3"]
+        top_three = self.metadata.top_three_monster
 
         return [
-            {"monster": top_3_data.get(1), "rank": 1},
-            {"monster": top_3_data.get(2), "rank": 2},
-            {"monster": top_3_data.get(3), "rank": 3}
+            {"monster": top_three.get(1), "rank": 1},
+            {"monster": top_three.get(2), "rank": 2},
+            {"monster": top_three.get(3), "rank": 3}
             ]
     
     def _get_4_to_228(self) -> list[dict [str, Any]]:

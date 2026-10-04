@@ -48,7 +48,7 @@ class FUQuestScraper(AbstractQuestScraper):
                 rank=self._match_rank(handler = quest.get("handler")),
                 level=quest.get("difficulty"),
                 is_assignment=quest.get("quest-type", "").strip() == "key",
-                targets=quest["difficulty"],
+                targets=quest["main-monsters"],
                 reward_zenny=quest.get("reward")
             )
             for quest in self.cached_quest_data

@@ -56,7 +56,7 @@ class TriQuestScraper(AbstractQuestScraper):
 
     @cached_property
     @file_cache(
-        path_attr="cache_links_path", 
+        path_attr="quest_links_path", 
         overwrite_attr="overwrite",
     )
     def quest_links(self) -> list[str]:
@@ -122,15 +122,15 @@ class TriQuestScraper(AbstractQuestScraper):
 
         is_urgent = h1_tag.find("span", string="Urgent") is not None
 
-        hub_tags = (
-            div_text.strip()
+        hub_tag = (
+            div_text.text.strip()
             if (div_text := div.find("td", colspan="2", string=True))
-            and isinstance(div_text, str)
+            and isinstance(div_text, Tag)
             else ""
         )
 
-        hub = hub_tags[0]
-        level = int(hub_tags[1])
+
+        hub, level = hub_tag.split(" ")
 
         raw_reward = self._get_quest_attribute(div, "Reward")
         zenny = (
@@ -150,8 +150,8 @@ class TriQuestScraper(AbstractQuestScraper):
         quest_dict = {
             "title": title,
             "hub": hub,
-            "rank": self._match_rank(hub, level, is_urgent),
-            "level": level,
+            "rank": self._match_rank(hub, int(level), is_urgent),
+            "level": int(level),
             "type": quest_type,
             "is_key": h1_tag.find("span", string="Key") is not None,
             "is_urgent": is_urgent,

@@ -93,7 +93,7 @@ class PipelineFactory():
         return RankingScraper(
             config=self.config.scraper.ranking,
             web_settings=self.config.scraper.web_settings,
-            metadata_path=self.config.paths.metadata_path,
+            metadata=self.config.metadata,
         )
 
     def _build_quest_feature_builder(self) -> QuestFeatureBuilder:

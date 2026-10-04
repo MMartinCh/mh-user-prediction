@@ -13,8 +13,8 @@ model: # ML prediction model to be trained
 scraper: # Scraper classes, mining data or loading from disk
 
   web_settings: # scraper settings for web retrieval, applied to all scrapers
-    polite_delay: 0.0 # (float) wether to sleep for specified delay when loading page
-    timeout: 10.0 # (float) time to wait for request
+    polite_delay: 0.5 # (float) wether to sleep for specified delay when loading page
+    timeout: 100.0 # (float) time to wait for request
     user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" # (str) 
 
   # settings for all main scrapers Ranking, Wiki and Quest
@@ -70,7 +70,7 @@ scraper: # Scraper classes, mining data or loading from disk
         game: Monster Hunter Four Ultimate
         generation: 4
         cache: data/partial/four_quest_data.json
-        overwrite: True
+        overwrite: False
         utils:
           monster_data: data/utils/four_monster_data.json
           monster_links: data/utils/four_monster_links.txt
@@ -93,7 +93,7 @@ scraper: # Scraper classes, mining data or loading from disk
         overwrite: False
         utils:
           monster_data: data/utils/world_monster_data.json
-          stock_data: data/utils/world_stock_data.json
+          stock_data: data/utils/world_stock_data.csv
           monster_links: data/utils/world_monster_links.json
           quest_links: data/utils/world_quest_links.txt
 
@@ -120,6 +120,6 @@ scraper: # Scraper classes, mining data or loading from disk
 # ---------------------
 paths:
   data_path: data/
-  metadata_path: data/utils/metadata.yaml/
+  metadata_path: data/metadata/metadata.yaml/
   
   

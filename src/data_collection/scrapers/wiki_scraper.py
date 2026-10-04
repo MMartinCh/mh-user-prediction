@@ -126,6 +126,7 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
                 containers = row_tr.find_all("span", typeof="mw:File")
                 assert isinstance(containers, list)
 
+                elements = []
                 for container in containers:
                     assert isinstance(container, Tag)
                     
@@ -135,7 +136,9 @@ class WikiScraper(AbstractWebScraper[WikiObject]):
                     title = a.get("title")
                     assert isinstance(title, str)
 
-                    monster_data[attribute.lower()] = title.strip()
+                    elements.append(title)              
+
+                    monster_data[attribute.lower()] = elements
 
         size_table = soup.find(
             "table", 

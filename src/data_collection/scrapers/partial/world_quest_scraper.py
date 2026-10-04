@@ -1,10 +1,11 @@
 import logging
 import re
+import requests
 from functools import cached_property
 from typing import Any
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import pandas as pd
 
 from config.config_dataclass import PartialQuestScraperConfig, WebSettings
@@ -37,9 +38,13 @@ class WorldQuestScraper(AbstractQuestScraper):
     BASE_URL = r"https://mhw.poedb.tw/eng/monsters/large"
 
     @cached_property
+    @file_cache(
+        path_attr="stock_data_path",
+        overwrite_attr="overwrite",
+    )
     def quest_base(self) -> pd.DataFrame:
-        logger.info(f"Load QUEST BASE from disk at: {self.stock_data_path}")
-        return pd.read_csv(self.stock_data_path)
+        REPO_URL = r"https://raw.githubusercontent.com/gatheringhallstudios/MHWorldData/refs/heads/master/source_data/quests/quest_base.csv"
+        return pd.read_csv(REPO_URL)
 
     @cached_property
     @file_cache(
@@ -97,11 +102,25 @@ class WorldQuestScraper(AbstractQuestScraper):
                 reward_points = quest["points"],
             ) 
             for quest in self.quest_data
+            if quest.get("title") is not None
         ]
 
     def scrape_quest_data(self, link: str) -> dict[str, Any]:
         soup = self.retrieve_soup(link)
+        
+        if soup is None:
+            logger.warning("No soup for: %s", link)
+            return {}
+
         table_info = soup.select_one("div.card")
+        if not isinstance(table_info, Tag):
+            logger.warning(
+                "Unusual structure for %s | table_info: %s",
+                link,
+                table_info
+            )
+            return {}
+
         table_header = table_info.select_one("div.card-header")
 
         level_match = re.search(r"(M?★)(\d+)(.+)", table_header.text)
@@ -171,7 +190,7 @@ class WorldQuestScraper(AbstractQuestScraper):
     def _scrape_quest_links_from_monster(self) -> list[str]:
         quest_links = set()
         for link in self.monster_links.values():
-            soup = self.retrieve_soup(link, polite=False)
+            soup = self.retrieve_soup(link)
             quest_header = soup.find(
                 lambda tag: tag.name == "div" 
                 and "card-header" in tag.get("class", []) 

@@ -12,6 +12,7 @@ from .config_dataclass import (
     WebSettings,
     WikiScraperConfig,
 )
+from data.metadata.metadata_class import Metadata
 
 class ConfigLoader:
 
@@ -26,8 +27,18 @@ class ConfigLoader:
         return Config(
             model=self._load_model_config(config["model"]),
             scraper=self._load_scrapers_config(config["scraper"]),
-            paths=self._load_paths_config(config["paths"])
+            paths=self._load_paths_config(config["paths"]),
+            metadata=self._load_metadata(config["paths"]["metadata_path"])
         )
+
+    def _load_metadata(self, meta_path) -> Metadata: # HACK
+        with open(self.base_path / meta_path, "r", encoding="utf-8") as f:
+            metadata = yaml.safe_load(f)
+            return Metadata(
+                top_three_monster=metadata["top_three_monsters"],
+                game_release_order=metadata["game_release_order"]
+            )
+
 
     def _load_model_config(self, data: dict) -> ModelConfig:
         return ModelConfig(
