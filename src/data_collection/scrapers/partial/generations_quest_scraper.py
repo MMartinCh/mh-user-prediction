@@ -1,3 +1,4 @@
+import logging
 import re
 from functools import cached_property
 from typing import Any
@@ -9,6 +10,7 @@ from src.core.dataclasses import QuestObject
 from src.core.interfaces.abstract_quest_scraper import AbstractQuestScraper
 from src.core.utils import file_cache
 
+logger = logging.getLogger(__name__)
 
 class GenerationsQuestScraper(AbstractQuestScraper):
     """Partial scraper class that scrapes quest data for MH G/GU.
@@ -82,7 +84,7 @@ class GenerationsQuestScraper(AbstractQuestScraper):
                 is_assignment=quest.get("is_urgent"),
                 is_event=quest.get("is_event"),
                 targets=quest["targets"],
-                target_hp=quest.get("targets_hp"),
+                target_hp=quest.get("targets_hp", {}),
                 reward_zenny=quest.get("zenny"),
                 reward_points=quest.get("hr_points"),
             )
@@ -153,6 +155,9 @@ class GenerationsQuestScraper(AbstractQuestScraper):
 
             if isinstance(monster_table, Tag):
                 for row in monster_table.find_all("tr"):
+                    if not isinstance(row, Tag):
+                        continue
+
                     monster = row.find(
                         "a",
                         href=True,
@@ -222,29 +227,29 @@ class GenerationsQuestScraper(AbstractQuestScraper):
 
     def _match_header(self, header: str) -> dict[str, str | int]:
         header_match = re.search(
-            r"(\w+)\s(G?\d+★?) // (.*)",
+            r"^(.*?)\s+(G\d+|\d+★)\s*//\s*(.*)$",
             header,
         )
 
         if header_match is None:
-            hub, title = header.split("//", maxsplit=1)
-            rank = "unknown"
-            level = 0
-        else:
-            hub = header_match.group(1)
-            rank_tag = header_match.group(2)
-            title = header_match.group(3)
+            logger.warning("Matching header failed: %s", header_match)
+            return {}
 
-            level_match = re.search(r"(\d+)", rank_tag)
-            level = int(level_match.group(1)) if level_match else 0
+        hub = header_match.group(1)
+        rank_tag = header_match.group(2)
+        title = header_match.group(3)
 
-            rank = "G"
-            is_village = "Village" in hub
+        level_match = re.search(r"(\d+)", rank_tag)
+        level = int(level_match.group(1)) if level_match else 0
 
-            if is_village:
-                rank = "HR" if level > 6 else "LR"
-            elif "G" not in rank_tag:
-                rank = "HR" if level > 3 else "LR"
+        rank = "MR"
+        is_village = "Village" in hub
+
+        if is_village:
+            rank = "HR" if level > 6 else "LR"
+
+        elif "G" not in rank_tag:
+            rank = "HR" if level > 3 else "LR"
 
         return {
             "title": title.strip(),
@@ -254,7 +259,10 @@ class GenerationsQuestScraper(AbstractQuestScraper):
         }
 
     def scrape_monster(self, link: str) -> dict[str, Any]:
-        soup = self.retrieve_soup(link, polite=False)
+        soup = self.retrieve_soup(link)
+        if soup is None:
+            logger.warning("Invalid link: %s", link)
+            return {}
 
         size_header = soup.find(
             "h5",
@@ -351,7 +359,8 @@ class GenerationsQuestScraper(AbstractQuestScraper):
                 "a",
                 href=True,
             )
-            if isinstance(href := link.get("href"), str)
+            if isinstance(link, Tag)
+            and isinstance(href := link.get("href"), str)
         ]
 
     def scrape_monster_links(self) -> list[str]:
@@ -379,5 +388,6 @@ class GenerationsQuestScraper(AbstractQuestScraper):
                 "a",
                 href=True,
             )
-            if isinstance(href := cell.get("href"), str)
+            if isinstance(cell, Tag)
+            and isinstance(href := cell.get("href"), str)
         ]

@@ -78,7 +78,8 @@ class RiseQuestScraper(AbstractQuestScraper):
 
     def scrape(self) -> List[QuestObject]:
         """Get all Quest info for MH Rise/ Sunbreak and return list of structured quest data."""
-        return[
+
+        return [
             QuestObject(
                 title=quest["title"],
                 quest_id=quest["id"],
@@ -94,7 +95,8 @@ class RiseQuestScraper(AbstractQuestScraper):
                 reward_points=quest["reward_rank_points"],
                 )
             for quest in self.quest_data
-            ]
+            if quest.get("title") is not None
+        ]
 
     def scrape_monster_page_data(self) -> dict[str, dict[str, int]]:
             """Scrape all data from all data from Monster pages. Save to csv and return df."""
@@ -139,6 +141,7 @@ class RiseQuestScraper(AbstractQuestScraper):
                         link,
                         e
                     )
+
                 except KeyboardInterrupt:
                     logger.warning("RISE MONSTER INFO SCRAPING manually interrupted. Save data to %s", self.cache_path)
                     return monster_page_data
@@ -150,7 +153,6 @@ class RiseQuestScraper(AbstractQuestScraper):
         
         quest_data = []
         for link in self.quest_links:
-
             try:
                 quest_data.append(self._extract_quest_data(link))
 
@@ -167,7 +169,7 @@ class RiseQuestScraper(AbstractQuestScraper):
 
         return quest_data
 
-    def _extract_quest_data(self, link: str) -> dict[str, Any] | None:
+    def _extract_quest_data(self, link: str) -> dict[str, Any]:
         soup = self.retrieve_soup(link)
         assert isinstance(soup, Tag)
 
@@ -181,14 +183,14 @@ class RiseQuestScraper(AbstractQuestScraper):
         ):
             quest_title = quest_title_tag.text.strip()
 
-        quest_rank, quest_level = "", None
+        quest_rank, quest_level = "", 0
         is_event = False
         if isinstance(header := soup.find("h1"), Tag):
             assert isinstance(category_tag := header.find("span", class_=True), Tag)
             quest_category = category_tag.text.strip()
 
             if match := re.search(r"(?P<rank>[a-zA-Z]+)(?P<level>\d+)", quest_category):
-                quest_rank = match.group("rank").upper()
+                quest_rank = "LR" if (qr := match.group("rank").upper()) == "VI" else qr
                 quest_level = match.group("level")
 
             is_event = header.find("span", class_="mh-quest-event tag") is not None
@@ -212,6 +214,10 @@ class RiseQuestScraper(AbstractQuestScraper):
 
         is_assignment = quest_title in self.key_quests
 
+        if quest_rank == "A":
+            logger.info("Quest skipped for Anomaly Quest: %s", link)
+            return {}
+
         return {
             "id": quest_id,
             "title": quest_title,
@@ -224,7 +230,7 @@ class RiseQuestScraper(AbstractQuestScraper):
             "is_assignment": is_assignment,
             "is_event": is_event,
             "is_village_quest": quest_rank == "VI"
-            }
+        }
 
     def _calculate_target_hp(self, quest_data: dict[str, Any]) -> dict[str, int]:
         """Read target hp scaling from table, multiply with base hp and return dict of targets and their quest hp."""
@@ -243,28 +249,51 @@ class RiseQuestScraper(AbstractQuestScraper):
 
         return targets_final_hp
 
-    def _scrape_monster_links(self) -> List[str]:
+    def _scrape_monster_links(self) -> list[str]:
         """"Find all Monster page links from Monster overview page."""
+        
         soup = self.retrieve_soup(self.BASE_URL)
+        assert isinstance(soup, BeautifulSoup)
+
         monster_table = soup.find("ul", class_="mh-list-monster")
-        _monster_links = [urljoin(self.BASE_URL, a["href"]) for a in monster_table.find_all("a", href=True) if a["href"]]
+        if not isinstance(monster_table, Tag):
+            raise AttributeError("Invalid page structure: %s", self.BASE_URL)
 
-        return _monster_links
+        return [
+            urljoin(self.BASE_URL, relative_link) 
+            for a in monster_table.find_all("a", href=True)
+            if isinstance(a, Tag)
+            and (relative_link := a.get("href", ""))
+            and isinstance(relative_link, str)
+        ]
 
-    def _scrape_quest_links(self) -> Set[str]:
+    def _scrape_quest_links(self) -> set[str]:
         """Scrape all quest links through monster pages."""
+
         quest_links = set()
         for monster in self.monster_links:
-            monster_soup = self.retrieve_soup(monster)
+            soup = self.retrieve_soup(monster)
+            assert isinstance(soup, BeautifulSoup)
 
-            quest_section = monster_soup.find("section", id="s-quest")
+            quest_section = soup.find("section", id="s-quest")
+            assert isinstance(quest_section, Tag)
+
             quest_rows = quest_section.select("tr:not(.mh-non-target):not(.mh-hidden) a[href^='quest/']") 
-            found_links = [urljoin(self.BASE_URL, a["href"].strip()) for a in quest_rows if a.has_attr("href")]
+
+            found_links = [
+                link.strip()
+                for a in quest_rows 
+                if isinstance(a, Tag)
+                and isinstance(relative_link := a.get("href", ""), str)
+                and (link := urljoin(self.BASE_URL, relative_link))
+                
+            ]
+
             quest_links.update(found_links)
 
         return quest_links
 
-    def _scrape_key_quests(self) -> Set[str]:
+    def _scrape_key_quests(self) -> set[str]:
         """Scrape all key quests from Fextralife Wiki, if not previously initiated and save."""
         
         soup = self.retrieve_soup(self.KEY_QUEST_URL)

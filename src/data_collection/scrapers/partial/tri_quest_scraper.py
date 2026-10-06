@@ -162,8 +162,6 @@ class TriQuestScraper(AbstractQuestScraper):
             "points": points,
         }
 
-        print(quest_dict)
-
         return quest_dict
 
     def _get_quest_attribute(

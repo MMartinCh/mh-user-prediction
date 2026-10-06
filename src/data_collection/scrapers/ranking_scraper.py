@@ -55,7 +55,7 @@ class RankingScraper(AbstractWebScraper[RankingObject]):
         return rankings
     
     def _get_top_3(self) -> list[dict[str, Any]]:
-        top_three = self.metadata.top_three_monster
+        top_three = self.metadata.top_three_monsters
 
         return [
             {"monster": top_three.get(1), "rank": 1},

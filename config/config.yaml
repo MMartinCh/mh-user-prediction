@@ -112,7 +112,7 @@ scraper: # Scraper classes, mining data or loading from disk
         game: Monster Hunter Wilds
         generation: 6
         cache: data/partial/wilds_quest_data.json
-        overwrite: True
+        overwrite: False
         utils: 
           monster_data: data/utils/wilds_lookup.json
 

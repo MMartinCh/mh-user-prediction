@@ -35,8 +35,8 @@ class ConfigLoader:
         with open(self.base_path / meta_path, "r", encoding="utf-8") as f:
             metadata = yaml.safe_load(f)
             return Metadata(
-                top_three_monster=metadata["top_three_monsters"],
-                game_release_order=metadata["game_release_order"]
+                top_three_monsters=metadata["top_three_monsters"],
+                game_release_order=metadata["game_release_order"],
             )
 
 

@@ -24,6 +24,7 @@ share/python-wheels/
 *.egg
 
 # Python Notebooks
+data_wrangling/
 try_out.py
 try_out.ipynb
 quest_data_processing.ipynb

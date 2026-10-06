@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 class QuestFeatureBuilder:
     """Transforms raw quest data into monster-level features."""
 
